@@ -1,0 +1,95 @@
+# ─── assembly-line-events ─────────────────────────────────────────────────────
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaTopic
+metadata:
+  name: assembly-line-events
+  namespace: kafka-factory
+  labels:
+    strimzi.io/cluster: factory-kafka
+    app.kubernetes.io/part-of: kafka-factory-demo
+spec:
+  partitions: 6
+  replicas: 3
+  config:
+    retention.ms: 604800000   # 7 days
+    cleanup.policy: delete
+---
+# ─── quality-control-results ──────────────────────────────────────────────────
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaTopic
+metadata:
+  name: quality-control-results
+  namespace: kafka-factory
+  labels:
+    strimzi.io/cluster: factory-kafka
+    app.kubernetes.io/part-of: kafka-factory-demo
+spec:
+  partitions: 3
+  replicas: 3
+  config:
+    retention.ms: 604800000
+    cleanup.policy: delete
+---
+# ─── vehicle-completed ────────────────────────────────────────────────────────
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaTopic
+metadata:
+  name: vehicle-completed
+  namespace: kafka-factory
+  labels:
+    strimzi.io/cluster: factory-kafka
+    app.kubernetes.io/part-of: kafka-factory-demo
+spec:
+  partitions: 3
+  replicas: 3
+  config:
+    retention.ms: 2592000000  # 30 days
+    cleanup.policy: delete
+---
+# ─── parts-inventory ──────────────────────────────────────────────────────────
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaTopic
+metadata:
+  name: parts-inventory
+  namespace: kafka-factory
+  labels:
+    strimzi.io/cluster: factory-kafka
+    app.kubernetes.io/part-of: kafka-factory-demo
+spec:
+  partitions: 3
+  replicas: 3
+  config:
+    retention.ms: 86400000    # 1 day
+    cleanup.policy: delete
+---
+# ─── engine-production ────────────────────────────────────────────────────────
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaTopic
+metadata:
+  name: engine-production
+  namespace: kafka-factory
+  labels:
+    strimzi.io/cluster: factory-kafka
+    app.kubernetes.io/part-of: kafka-factory-demo
+spec:
+  partitions: 3
+  replicas: 3
+  config:
+    retention.ms: 604800000
+    cleanup.policy: delete
+---
+# ─── paint-shop-events ────────────────────────────────────────────────────────
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaTopic
+metadata:
+  name: paint-shop-events
+  namespace: kafka-factory
+  labels:
+    strimzi.io/cluster: factory-kafka
+    app.kubernetes.io/part-of: kafka-factory-demo
+spec:
+  partitions: 3
+  replicas: 3
+  config:
+    retention.ms: 604800000
+    cleanup.policy: delete

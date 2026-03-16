@@ -1,0 +1,66 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: kafka-metrics
+  namespace: kafka-factory
+  labels:
+    app.kubernetes.io/part-of: kafka-factory-demo
+data:
+  kafka-metrics-config.yml: |
+    # See https://github.com/prometheus/jmx_exporter for documentation
+    lowercaseOutputName: true
+    rules:
+      # Broker topic metrics
+      - pattern: kafka.server<type=BrokerTopicMetrics, name=(BytesInPerSec|BytesOutPerSec|MessagesInPerSec|BytesRejectedPerSec|FailedProduceRequestsPerSec|FailedFetchRequestsPerSec), topic=(.+)><>Count
+        name: kafka_server_brokertopicmetrics_$1_total
+        labels:
+          topic: "$2"
+        type: COUNTER
+      - pattern: kafka.server<type=BrokerTopicMetrics, name=(BytesInPerSec|BytesOutPerSec|MessagesInPerSec|BytesRejectedPerSec)><>Count
+        name: kafka_server_brokertopicmetrics_$1_total
+        type: COUNTER
+      # ReplicaManager metrics
+      - pattern: kafka.server<type=ReplicaManager, name=(.+)><>(Value|Count)
+        name: kafka_server_replicamanager_$1
+        type: GAUGE
+      # RequestHandler metrics
+      - pattern: kafka.server<type=KafkaRequestHandlerPool, name=RequestHandlerAvgIdlePercent><>MeanRate
+        name: kafka_server_kafkarequesthandlerpool_requesthandleravgidlepercent
+        type: GAUGE
+      # Log metrics
+      - pattern: kafka.log<type=LogManager, name=(.+)><>(Value|Count)
+        name: kafka_log_logmanager_$1
+        type: GAUGE
+      # Network metrics
+      - pattern: kafka.network<type=RequestMetrics, name=RequestsPerSec, request=(.+)><>Count
+        name: kafka_network_requestmetrics_requestspersec_total
+        labels:
+          request: "$1"
+        type: COUNTER
+      - pattern: kafka.network<type=RequestMetrics, name=(TotalTimeMs|RequestQueueTimeMs|LocalTimeMs|RemoteTimeMs|ResponseQueueTimeMs|ResponseSendTimeMs), request=(.+)><>(\d+)thPercentile
+        name: kafka_network_requestmetrics_$1
+        labels:
+          request: "$2"
+          quantile: "0.$3"
+        type: GAUGE
+      # Controller metrics (KRaft)
+      - pattern: kafka.controller<type=(.+), name=(.+)><>(Value|Count)
+        name: kafka_controller_$1_$2
+        type: GAUGE
+      # JVM metrics
+      - pattern: java.lang<type=OperatingSystem><>(FreePhysicalMemorySize|TotalPhysicalMemorySize|FreeSwapSpaceSize|TotalSwapSpaceSize|SystemCpuLoad|ProcessCpuLoad|OpenFileDescriptorCount|MaxFileDescriptorCount)
+        name: java_lang_operatingsystem_$1
+        type: GAUGE
+      - pattern: java.lang<type=GarbageCollector, name=(.+)><>CollectionCount
+        name: java_lang_garbagecollector_collection_count_total
+        labels:
+          name: "$1"
+        type: COUNTER
+      - pattern: java.lang<type=GarbageCollector, name=(.+)><>CollectionTime
+        name: java_lang_garbagecollector_collection_time_total
+        labels:
+          name: "$1"
+        type: COUNTER
+      - pattern: java.lang<type=Memory><>HeapMemoryUsage
+        name: java_lang_memory_heapmemoryusage
+        type: GAUGE

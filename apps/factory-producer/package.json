@@ -1,0 +1,12 @@
+{
+  "name": "factory-producer",
+  "version": "1.0.0",
+  "description": "Automotive factory event producer for Kafka demo",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js"
+  },
+  "dependencies": {
+    "kafkajs": "^2.2.4"
+  }
+}

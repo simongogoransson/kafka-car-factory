@@ -1,0 +1,41 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: factory-producer
+  namespace: kafka-factory
+  labels:
+    app: factory-producer
+    app.kubernetes.io/part-of: kafka-factory-demo
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: factory-producer
+  template:
+    metadata:
+      labels:
+        app: factory-producer
+    spec:
+      containers:
+        - name: factory-producer
+          image: factory-producer
+          env:
+            - name: KAFKA_BROKERS
+              value: factory-kafka-kafka-bootstrap.kafka-factory.svc.cluster.local:9092
+            - name: NODE_ENV
+              value: production
+          resources:
+            requests:
+              memory: 128Mi
+              cpu: "100m"
+            limits:
+              memory: 256Mi
+              cpu: "300m"
+          livenessProbe:
+            exec:
+              command:
+                - node
+                - -e
+                - "process.exit(0)"
+            initialDelaySeconds: 30
+            periodSeconds: 30

@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>🏭 Factory Kafka Dashboard</title>
+  <style>
+    :root {
+      --bg: #0d0d0d;
+      --surface: #1a1a1a;
+      --surface2: #232323;
+      --border: #333;
+      --red: #e63946;
+      --orange: #f4a261;
+      --yellow: #ffd166;
+      --green: #06d6a0;
+      --blue: #118ab2;
+      --purple: #9b5de5;
+      --text: #f0f0f0;
+      --text-muted: #888;
+      --font: 'Segoe UI', system-ui, sans-serif;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font);
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    /* ── Header ── */
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 24px;
+      background: var(--surface);
+      border-bottom: 2px solid var(--red);
+      flex-shrink: 0;
+    }
+    .logo { display: flex; align-items: center; gap: 12px; }
+    .logo h1 { font-size: 1.3rem; font-weight: 700; letter-spacing: 1px; }
+    .logo span { font-size: 1.8rem; }
+    .status-bar { display: flex; gap: 24px; align-items: center; }
+    .status-indicator {
+      display: flex; align-items: center; gap: 6px;
+      font-size: 0.85rem; color: var(--text-muted);
+    }
+    .dot {
+      width: 10px; height: 10px; border-radius: 50%;
+      background: #555; transition: background 0.3s;
+    }
+    .dot.connected { background: var(--green); box-shadow: 0 0 6px var(--green); }
+    .dot.disconnected { background: var(--red); }
+
+    /* ── Stats bar ── */
+    .stats-bar {
+      display: flex;
+      gap: 12px;
+      padding: 10px 24px;
+      background: var(--surface2);
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+      overflow-x: auto;
+    }
+    .stat-card {
+      min-width: 140px;
+      padding: 8px 14px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: var(--surface);
+      text-align: center;
+    }
+    .stat-card .count {
+      font-size: 1.6rem;
+      font-weight: 700;
+      line-height: 1;
+    }
+    .stat-card .label {
+      font-size: 0.7rem;
+      color: var(--text-muted);
+      margin-top: 4px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    /* ── Main content ── */
+    main {
+      flex: 1;
+      overflow: hidden;
+      padding: 16px 24px;
+      display: flex;
+      gap: 16px;
+    }
+
+    .event-feed {
+      flex: 1;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .event-feed::-webkit-scrollbar { width: 6px; }
+    .event-feed::-webkit-scrollbar-track { background: var(--bg); }
+    .event-feed::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+    .event-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-left: 4px solid var(--blue);
+      border-radius: 8px;
+      padding: 10px 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      animation: fadeIn 0.3s ease;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(-8px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .event-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .topic-badge {
+      font-size: 0.7rem;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .event-key {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      font-family: monospace;
+    }
+    .event-time {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      margin-left: auto;
+    }
+    .event-body {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      font-size: 0.82rem;
+    }
+    .event-field {
+      background: var(--surface2);
+      border-radius: 4px;
+      padding: 2px 8px;
+    }
+    .event-field .field-name { color: var(--text-muted); }
+    .event-field .field-val { color: var(--text); margin-left: 4px; }
+    .field-val.ok    { color: var(--green); }
+    .field-val.pass  { color: var(--green); }
+    .field-val.fail  { color: var(--red); }
+    .field-val.critical { color: var(--red); font-weight: bold; }
+    .field-val.low   { color: var(--orange); }
+    .field-val.rework { color: var(--orange); }
+    .field-val.defect { color: var(--red); }
+
+    /* ── Topic colors ── */
+    .topic-assembly-line-events     { background: #1b3a4b; color: #6bcfef; border-color: #118ab2; }
+    .topic-quality-control-results  { background: #1f2d1c; color: #6dde89; border-color: #06d6a0; }
+    .topic-vehicle-completed        { background: #3b1f1f; color: #e87e7e; border-color: #e63946; }
+    .topic-parts-inventory          { background: #2d2516; color: #f5c87a; border-color: #ffd166; }
+    .topic-engine-production        { background: #2a1f3d; color: #c09ae8; border-color: #9b5de5; }
+    .topic-paint-shop-events        { background: #2b2214; color: #f5a86a; border-color: #f4a261; }
+
+    .border-assembly-line-events     { border-left-color: #118ab2; }
+    .border-quality-control-results  { border-left-color: #06d6a0; }
+    .border-vehicle-completed        { border-left-color: #e63946; }
+    .border-parts-inventory          { border-left-color: #ffd166; }
+    .border-engine-production        { border-left-color: #9b5de5; }
+    .border-paint-shop-events        { border-left-color: #f4a261; }
+
+    /* ── Sidebar ── */
+    .sidebar {
+      width: 240px;
+      flex-shrink: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .sidebar-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 14px;
+    }
+    .sidebar-card h3 { font-size: 0.85rem; color: var(--text-muted); margin-bottom: 10px; letter-spacing: 1px; text-transform: uppercase; }
+    .topic-row { display: flex; justify-content: space-between; align-items: center; padding: 5px 0; border-bottom: 1px solid var(--border); font-size: 0.8rem; }
+    .topic-row:last-child { border-bottom: none; }
+    .topic-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+    .topic-name { flex: 1; margin: 0 8px; color: var(--text-muted); font-size: 0.75rem; }
+    .topic-cnt { font-weight: 700; }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <span>🏭</span>
+    <h1>FACTORY KAFKA DASHBOARD</h1>
+  </div>
+  <div class="status-bar">
+    <div class="status-indicator">
+      <div class="dot" id="ws-dot"></div>
+      <span id="ws-label">Connecting…</span>
+    </div>
+    <div class="status-indicator">
+      <span id="total-count">0</span>&nbsp;events
+    </div>
+    <div class="status-indicator">
+      <span id="rate-label">0 /s</span>
+    </div>
+  </div>
+</header>
+
+<div class="stats-bar" id="stats-bar">
+  <!-- filled by JS -->
+</div>
+
+<main>
+  <div class="event-feed" id="event-feed"></div>
+  <aside class="sidebar">
+    <div class="sidebar-card">
+      <h3>Topics</h3>
+      <div id="topic-list"></div>
+    </div>
+  </aside>
+</main>
+
+<script>
+  const MAX_EVENTS = 200;
+
+  const TOPIC_META = {
+    'assembly-line-events':    { label: 'Assembly Line',     color: '#118ab2', emoji: '🔧' },
+    'quality-control-results': { label: 'Quality Control',   color: '#06d6a0', emoji: '✅' },
+    'vehicle-completed':       { label: 'Vehicle Completed', color: '#e63946', emoji: '🚗' },
+    'parts-inventory':         { label: 'Parts Inventory',   color: '#ffd166', emoji: '📦' },
+    'engine-production':       { label: 'Engine Production', color: '#9b5de5', emoji: '⚙️'  },
+    'paint-shop-events':       { label: 'Paint Shop',        color: '#f4a261', emoji: '🎨' },
+  };
+
+  const topicCounts = {};
+  let totalCount = 0;
+  let lastRateCount = 0;
+
+  // Initialise counters
+  for (const t of Object.keys(TOPIC_META)) topicCounts[t] = 0;
+
+  // ── Stats bar ──────────────────────────────────────────────────────────────
+  const statsBar = document.getElementById('stats-bar');
+  Object.entries(TOPIC_META).forEach(([topic, meta]) => {
+    const card = document.createElement('div');
+    card.className = 'stat-card';
+    card.id = `stat-${topic}`;
+    card.innerHTML = `<div class="count" style="color:${meta.color}">0</div><div class="label">${meta.emoji} ${meta.label}</div>`;
+    statsBar.appendChild(card);
+  });
+
+  // ── Sidebar topic list ─────────────────────────────────────────────────────
+  const topicList = document.getElementById('topic-list');
+  Object.entries(TOPIC_META).forEach(([topic, meta]) => {
+    const row = document.createElement('div');
+    row.className = 'topic-row';
+    row.id = `trow-${topic}`;
+    row.innerHTML = `
+      <div class="topic-dot" style="background:${meta.color}"></div>
+      <div class="topic-name">${meta.label}</div>
+      <div class="topic-cnt" style="color:${meta.color}" id="tcnt-${topic}">0</div>`;
+    topicList.appendChild(row);
+  });
+
+  // ── Event rendering ────────────────────────────────────────────────────────
+  const feed = document.getElementById('event-feed');
+
+  const DISPLAY_FIELDS = {
+    'assembly-line-events':    ['model', 'station', 'operation', 'workerId', 'durationSec', 'status'],
+    'quality-control-results': ['model', 'inspector', 'overallResult', 'defectCode'],
+    'vehicle-completed':       ['model', 'color', 'productionLine', 'destination', 'deliveryDate'],
+    'parts-inventory':         ['partName', 'partNumber', 'quantity', 'stockStatus', 'warehouse'],
+    'engine-production':       ['type', 'displacementCC', 'cylinders', 'powerKw', 'testResult'],
+    'paint-shop-events':       ['model', 'color', 'boothNumber', 'stage', 'temperatureC', 'status'],
+  };
+
+  const STATUS_FIELDS = new Set(['status', 'overallResult', 'testResult', 'stockStatus', 'result']);
+
+  function statusClass(key, val) {
+    if (!STATUS_FIELDS.has(key)) return '';
+    return val;
+  }
+
+  function renderEvent(envelope) {
+    const { topic, key, payload } = envelope;
+    const meta = TOPIC_META[topic] || { label: topic, color: '#888', emoji: '📨' };
+    const fields = DISPLAY_FIELDS[topic] || Object.keys(payload).slice(0, 6);
+    const ts = payload.timestamp ? new Date(payload.timestamp).toLocaleTimeString() : '';
+
+    const card = document.createElement('div');
+    card.className = `event-card border-${topic}`;
+
+    const header = document.createElement('div');
+    header.className = 'event-header';
+    header.innerHTML = `
+      <span class="topic-badge topic-${topic}">${meta.emoji} ${meta.label}</span>
+      <span class="event-key">${key || ''}</span>
+      <span class="event-time">${ts}</span>`;
+
+    const body = document.createElement('div');
+    body.className = 'event-body';
+    fields.forEach((f) => {
+      let val = payload[f];
+      if (val === null || val === undefined) return;
+      if (typeof val === 'object') val = JSON.stringify(val);
+      const sc = statusClass(f, String(val).toLowerCase());
+      body.innerHTML += `<div class="event-field"><span class="field-name">${f}:</span><span class="field-val ${sc}">${val}</span></div>`;
+    });
+
+    card.appendChild(header);
+    card.appendChild(body);
+
+    feed.prepend(card);
+
+    // Trim old events
+    while (feed.children.length > MAX_EVENTS) {
+      feed.removeChild(feed.lastChild);
+    }
+  }
+
+  // ── WebSocket connection ───────────────────────────────────────────────────
+  const dot   = document.getElementById('ws-dot');
+  const label = document.getElementById('ws-label');
+  const totalEl = document.getElementById('total-count');
+  const rateEl  = document.getElementById('rate-label');
+
+  function connect() {
+    // Fetch WS port from /config then connect
+    fetch('/config')
+      .then(r => r.json())
+      .then(({ wsPort }) => {
+        const wsUrl = `ws://${location.hostname}:${wsPort}`;
+        const ws = new WebSocket(wsUrl);
+
+        ws.onopen = () => {
+          dot.className = 'dot connected';
+          label.textContent = 'Live';
+        };
+
+        ws.onmessage = (e) => {
+          const envelope = JSON.parse(e.data);
+          const topic = envelope.topic;
+          topicCounts[topic] = (topicCounts[topic] || 0) + 1;
+          totalCount++;
+          lastRateCount++;
+
+          // Update stat card
+          const card = document.getElementById(`stat-${topic}`);
+          if (card) card.querySelector('.count').textContent = topicCounts[topic];
+
+          // Update sidebar
+          const cnt = document.getElementById(`tcnt-${topic}`);
+          if (cnt) cnt.textContent = topicCounts[topic];
+
+          totalEl.textContent = totalCount;
+          renderEvent(envelope);
+        };
+
+        ws.onclose = () => {
+          dot.className = 'dot disconnected';
+          label.textContent = 'Reconnecting…';
+          setTimeout(connect, 3000);
+        };
+
+        ws.onerror = () => ws.close();
+      })
+      .catch(() => setTimeout(connect, 3000));
+  }
+
+  // Rate counter
+  setInterval(() => {
+    rateEl.textContent = `${lastRateCount} /s`;
+    lastRateCount = 0;
+  }, 1000);
+
+  connect();
+</script>
+</body>
+</html>

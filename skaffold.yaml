@@ -1,0 +1,61 @@
+apiVersion: skaffold/v4beta11
+kind: Config
+metadata:
+  name: kafka-factory-demo
+
+build:
+  artifacts:
+    - image: factory-producer
+      context: apps/factory-producer
+      docker:
+        dockerfile: Dockerfile
+    - image: factory-dashboard
+      context: apps/factory-dashboard
+      docker:
+        dockerfile: Dockerfile
+  local:
+    push: false
+    useDockerCLI: false   # uses DOCKER_HOST (Podman socket) directly
+    useBuildkit: false
+
+manifests:
+  rawYaml:
+    - k8s/namespace.yaml
+    - k8s/kafka/kafka-metrics-cm.yaml
+    - k8s/kafka/kafka-nodepool-controllers.yaml
+    - k8s/kafka/kafka-nodepool-brokers.yaml
+    - k8s/kafka/kafka-cluster.yaml
+    - k8s/kafka/kafka-topics.yaml
+    - k8s/monitoring/prometheus-rbac.yaml
+    - k8s/monitoring/prometheus-config.yaml
+    - k8s/monitoring/prometheus.yaml
+    - k8s/kafka-ui/kafka-ui.yaml
+    - k8s/factory-app/deployment-producer.yaml
+    - k8s/factory-app/deployment-dashboard.yaml
+    - k8s/factory-app/service-dashboard.yaml
+
+deploy:
+  kubectl:
+    defaultNamespace: kafka-factory
+
+portForward:
+  - resourceType: Service
+    resourceName: factory-dashboard
+    namespace: kafka-factory
+    port: 3000
+    localPort: 3000
+  - resourceType: Service
+    resourceName: factory-dashboard
+    namespace: kafka-factory
+    port: 3001
+    localPort: 3001
+  - resourceType: Service
+    resourceName: kafka-ui
+    namespace: kafka-factory
+    port: 8080
+    localPort: 8080
+  - resourceType: Service
+    resourceName: prometheus
+    namespace: kafka-factory
+    port: 9090
+    localPort: 9090

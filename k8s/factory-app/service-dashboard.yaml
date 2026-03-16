@@ -1,0 +1,19 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: factory-dashboard
+  namespace: kafka-factory
+  labels:
+    app: factory-dashboard
+    app.kubernetes.io/part-of: kafka-factory-demo
+spec:
+  selector:
+    app: factory-dashboard
+  ports:
+    - name: http
+      port: 3000
+      targetPort: 3000
+    - name: ws
+      port: 3001
+      targetPort: 3001
+  type: ClusterIP
