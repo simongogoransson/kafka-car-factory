@@ -11,9 +11,9 @@ spec:
   tasksMax: 1
   config:
     topics: vehicle-completed
-    connection.url: ${secret:postgres-credentials:jdbc-url}
-    connection.username: ${secret:postgres-credentials:username}
-    connection.password: ${secret:postgres-credentials:password}
+    connection.url: jdbc:postgresql://postgres.kafka-factory.svc.cluster.local:5432/factory_analytics
+    connection.username: factory
+    connection.password: factory
     table.name.format: vehicle_completed_events
     schema.evolution: none
     insert.mode: insert
