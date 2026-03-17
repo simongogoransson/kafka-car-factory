@@ -60,6 +60,10 @@ async function startConsumer() {
       let payload;
       try {
         payload = JSON.parse(message.value.toString());
+        // Connect JSON converter messages use { schema, payload } envelope.
+        if (payload && typeof payload === 'object' && payload.payload && payload.schema) {
+          payload = payload.payload;
+        }
       } catch {
         payload = { raw: message.value.toString() };
       }

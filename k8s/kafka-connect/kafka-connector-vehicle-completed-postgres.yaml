@@ -1,0 +1,38 @@
+apiVersion: kafka.strimzi.io/v1
+kind: KafkaConnector
+metadata:
+  name: vehicle-completed-postgres-sink
+  namespace: kafka-factory
+  labels:
+    strimzi.io/cluster: factory-connect
+    app.kubernetes.io/part-of: kafka-factory-demo
+spec:
+  class: io.debezium.connector.jdbc.JdbcSinkConnector
+  tasksMax: 1
+  config:
+    topics: vehicle-completed
+    connection.url: ${secret:postgres-credentials:jdbc-url}
+    connection.username: ${secret:postgres-credentials:username}
+    connection.password: ${secret:postgres-credentials:password}
+    table.name.format: vehicle_completed_events
+    schema.evolution: none
+    insert.mode: insert
+    delete.enabled: false
+    key.converter: org.apache.kafka.connect.storage.StringConverter
+    value.converter: org.apache.kafka.connect.json.JsonConverter
+    value.converter.schemas.enable: true
+    # Start from latest to skip old schemaless messages already in this topic.
+    consumer.override.auto.offset.reset: latest
+    transforms: RenameFields,KeepFields,ConvertDeliveryDate,ConvertEventTs
+    transforms.RenameFields.type: org.apache.kafka.connect.transforms.ReplaceField$Value
+    transforms.RenameFields.renames: eventType:event_type,productionTimeMin:production_time_min,productionLine:production_line,deliveryDate:delivery_date,timestamp:event_ts
+    transforms.KeepFields.type: org.apache.kafka.connect.transforms.ReplaceField$Value
+    transforms.KeepFields.include: event_type,vin,model,color,production_time_min,production_line,destination,delivery_date,event_ts
+    transforms.ConvertDeliveryDate.type: org.apache.kafka.connect.transforms.TimestampConverter$Value
+    transforms.ConvertDeliveryDate.field: delivery_date
+    transforms.ConvertDeliveryDate.format: yyyy-MM-dd
+    transforms.ConvertDeliveryDate.target.type: Date
+    transforms.ConvertEventTs.type: org.apache.kafka.connect.transforms.TimestampConverter$Value
+    transforms.ConvertEventTs.field: event_ts
+    transforms.ConvertEventTs.format: yyyy-MM-dd'T'HH:mm:ss.SSSX
+    transforms.ConvertEventTs.target.type: Timestamp

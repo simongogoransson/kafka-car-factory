@@ -13,6 +13,10 @@ build:
       context: apps/factory-dashboard
       docker:
         dockerfile: Dockerfile
+    - image: factory-connect
+      context: apps/factory-connect
+      docker:
+        dockerfile: Dockerfile
   local:
     push: false
     useDockerCLI: false   # uses DOCKER_HOST (Podman socket) directly
@@ -26,6 +30,11 @@ manifests:
     - k8s/kafka/kafka-nodepool-brokers.yaml
     - k8s/kafka/kafka-cluster.yaml
     - k8s/kafka/kafka-topics.yaml
+    - k8s/kafka/kafka-connect-topics.yaml
+    - k8s/postgres/postgres-secret.yaml
+    - k8s/postgres/postgres.yaml
+    - k8s/kafka-connect/kafka-connect.yaml
+    - k8s/kafka-connect/kafka-connector-vehicle-completed-postgres.yaml
     - k8s/monitoring/prometheus-rbac.yaml
     - k8s/monitoring/prometheus-config.yaml
     - k8s/monitoring/prometheus.yaml
@@ -59,3 +68,8 @@ portForward:
     namespace: kafka-factory
     port: 9090
     localPort: 9090
+  - resourceType: Service
+    resourceName: postgres
+    namespace: kafka-factory
+    port: 5432
+    localPort: 5433

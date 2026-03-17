@@ -1,0 +1,42 @@
+# Internal topics for the Kafka Connect cluster
+apiVersion: kafka.strimzi.io/v1
+kind: KafkaTopic
+metadata:
+  name: factory-connect-configs
+  namespace: kafka-factory
+  labels:
+    strimzi.io/cluster: factory-kafka
+    app.kubernetes.io/part-of: kafka-factory-demo
+spec:
+  partitions: 1
+  replicas: 3
+  config:
+    cleanup.policy: compact
+---
+apiVersion: kafka.strimzi.io/v1
+kind: KafkaTopic
+metadata:
+  name: factory-connect-offsets
+  namespace: kafka-factory
+  labels:
+    strimzi.io/cluster: factory-kafka
+    app.kubernetes.io/part-of: kafka-factory-demo
+spec:
+  partitions: 3
+  replicas: 3
+  config:
+    cleanup.policy: compact
+---
+apiVersion: kafka.strimzi.io/v1
+kind: KafkaTopic
+metadata:
+  name: factory-connect-status
+  namespace: kafka-factory
+  labels:
+    strimzi.io/cluster: factory-kafka
+    app.kubernetes.io/part-of: kafka-factory-demo
+spec:
+  partitions: 3
+  replicas: 3
+  config:
+    cleanup.policy: compact

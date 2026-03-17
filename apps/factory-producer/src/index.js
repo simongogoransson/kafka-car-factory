@@ -28,6 +28,32 @@ function pickTopic() {
   return TOPICS[0];
 }
 
+const VEHICLE_COMPLETED_CONNECT_SCHEMA = {
+  type: 'struct',
+  name: 'factory.vehicle_completed.v1',
+  optional: false,
+  fields: [
+    { field: 'eventType', type: 'string', optional: false },
+    { field: 'vin', type: 'string', optional: false },
+    { field: 'model', type: 'string', optional: false },
+    { field: 'color', type: 'string', optional: false },
+    { field: 'productionTimeMin', type: 'int32', optional: false },
+    { field: 'productionLine', type: 'string', optional: false },
+    { field: 'destination', type: 'string', optional: false },
+    { field: 'deliveryDate', type: 'string', optional: false },
+    { field: 'timestamp', type: 'string', optional: false },
+  ],
+};
+
+function serializeForTopic(topic, event) {
+  if (topic !== 'vehicle-completed') return JSON.stringify(event);
+
+  return JSON.stringify({
+    schema: VEHICLE_COMPLETED_CONNECT_SCHEMA,
+    payload: event,
+  });
+}
+
 async function run() {
   const kafka = new Kafka({
     clientId: CLIENT_ID,
@@ -62,7 +88,7 @@ async function run() {
       messages: [
         {
           key: event.vin || event.partNumber || event.engineSerial || String(event.id || Date.now()),
-          value: JSON.stringify(event),
+          value: serializeForTopic(topic, event),
           timestamp: String(Date.now()),
         },
       ],

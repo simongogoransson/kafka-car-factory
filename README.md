@@ -4,6 +4,8 @@ A Kubernetes-based Kafka demo with an **automotive car factory theme**, using:
 
 - **[Strimzi](https://strimzi.io/)** operator — Kafka on Kubernetes
 - **KRaft mode** — 3 controllers + 3 brokers (no Zookeeper)
+- **[Kafka Connect](https://kafka.apache.org/documentation/#connect)** — sink `vehicle-completed` events into PostgreSQL
+- **PostgreSQL** — analytics table `vehicle_completed_events`
 - **[Skaffold](https://skaffold.dev/)** — dev/deploy workflow
 - **[Kafka UI](https://github.com/provectus/kafka-ui)** — topic/consumer browser
 - **[Prometheus](https://prometheus.io/)** — metrics from Strimzi JMX exporter
@@ -111,6 +113,26 @@ Skaffold automatically uses the Podman socket (`DOCKER_HOST`) to build container
 
 ---
 
+## Kafka Connect Sink Demo
+
+This repo now includes a Kafka Connect sink that writes the `vehicle-completed` topic into PostgreSQL table `vehicle_completed_events`.
+
+After `skaffold dev --port-forward`, verify it with:
+
+```bash
+kubectl get kafkaconnector vehicle-completed-postgres-sink -n kafka-factory
+kubectl get pods -n kafka-factory | grep -E 'factory-connect|postgres'
+```
+
+Query PostgreSQL (port-forwarded to `localhost:5433` by Skaffold):
+
+```bash
+psql "postgresql://factory:factory@localhost:5433/factory_analytics" \
+  -c "SELECT vin, model, production_line, event_ts FROM vehicle_completed_events ORDER BY id DESC LIMIT 10;"
+```
+
+---
+
 ## Project Structure
 
 ```
@@ -126,7 +148,13 @@ kafka-skaffold/
 │   │   ├── kafka-nodepool-controllers.yaml  # 3 KRaft controllers
 │   │   ├── kafka-nodepool-brokers.yaml      # 3 Kafka brokers
 │   │   ├── kafka-cluster.yaml      # Kafka CR (KRaft mode)
-│   │   └── kafka-topics.yaml       # 6 factory topics
+│   │   ├── kafka-topics.yaml       # 6 factory topics
+│   │   └── kafka-connect-topics.yaml # Connect internal topics
+│   ├── kafka-connect/
+│   │   ├── kafka-connect.yaml      # KafkaConnect cluster
+│   │   └── kafka-connector-vehicle-completed-postgres.yaml
+│   ├── postgres/
+│   │   └── postgres.yaml           # Postgres + init SQL table
 │   ├── monitoring/
 │   │   ├── prometheus-rbac.yaml
 │   │   ├── prometheus-config.yaml
@@ -188,10 +216,11 @@ Key metrics available:
 
 ## Notes
 
-- Kafka version: **3.9.0** (KRaft, no Zookeeper)
+- Kafka version: **4.1.0** (KRaft, no Zookeeper)
 - Strimzi version: **0.45.0**
 - All services are `ClusterIP` — access via Skaffold port-forward
 - Storage: `persistent-claim` with `deleteClaim: true` (deleted with namespace)
 - The producer generates ~1 event every 300ms–2.5s across all topics
 - Skaffold builds images using the **Podman socket** via `DOCKER_HOST` — no Docker daemon needed
 - The Makefile auto-detects the Podman socket path via `podman info`
+- PostgreSQL sink table: `vehicle_completed_events` via Kafka Connect JDBC sink
