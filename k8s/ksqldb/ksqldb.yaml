@@ -1,0 +1,84 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ksqldb-server
+  namespace: kafka-factory
+  labels:
+    app: ksqldb-server
+    app.kubernetes.io/part-of: kafka-factory-demo
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ksqldb-server
+  template:
+    metadata:
+      labels:
+        app: ksqldb-server
+    spec:
+      containers:
+        - name: ksqldb-server
+          image: confluentinc/ksqldb-server:0.29.0
+          ports:
+            - name: http
+              containerPort: 8088
+          env:
+            - name: KSQL_BOOTSTRAP_SERVERS
+              value: "factory-kafka-kafka-bootstrap.kafka-factory.svc.cluster.local:9092"
+            - name: KSQL_LISTENERS
+              value: "http://0.0.0.0:8088"
+            - name: KSQL_KSQL_SERVICE_ID
+              value: "kafka_factory_ksql_"
+            - name: KSQL_KSQL_STREAMS_REPLICATION_FACTOR
+              value: "3"
+            - name: KSQL_KSQL_INTERNAL_TOPIC_REPLICAS
+              value: "3"
+            - name: KSQL_KSQL_LOGGING_PROCESSING_STREAM_AUTO_CREATE
+              value: "true"
+            - name: KSQL_KSQL_LOGGING_PROCESSING_TOPIC_AUTO_CREATE
+              value: "true"
+            - name: KSQL_KSQL_LOGGING_PROCESSING_TOPIC_REPLICATION_FACTOR
+              value: "3"
+            - name: KSQL_KSQL_STREAMS_NUM_STREAM_THREADS
+              value: "3"
+            - name: KSQL_HEAP_OPTS
+              value: "-Xms256M -Xmx512M"
+          livenessProbe:
+            httpGet:
+              path: /healthcheck
+              port: 8088
+            initialDelaySeconds: 120
+            periodSeconds: 30
+            failureThreshold: 5
+          readinessProbe:
+            httpGet:
+              path: /healthcheck
+              port: 8088
+            initialDelaySeconds: 60
+            periodSeconds: 10
+            failureThreshold: 10
+          resources:
+            requests:
+              memory: 512Mi
+              cpu: "200m"
+            limits:
+              memory: 1Gi
+              cpu: "500m"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ksqldb-server
+  namespace: kafka-factory
+  labels:
+    app: ksqldb-server
+    app.kubernetes.io/part-of: kafka-factory-demo
+spec:
+  selector:
+    app: ksqldb-server
+  ports:
+    - name: http
+      port: 8088
+      targetPort: 8088
+  type: ClusterIP
+
