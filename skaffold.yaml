@@ -38,6 +38,7 @@ manifests:
     - k8s/monitoring/prometheus-rbac.yaml
     - k8s/monitoring/prometheus-config.yaml
     - k8s/monitoring/prometheus.yaml
+    - k8s/ksqldb/ksqldb.yaml
     - k8s/kafka-ui/kafka-ui.yaml
     - k8s/factory-app/deployment-producer.yaml
     - k8s/factory-app/deployment-dashboard.yaml
@@ -76,6 +77,11 @@ portForward:
     namespace: kafka-factory
     port: 9090
     localPort: 9090
+  - resourceType: Service
+    resourceName: ksqldb-server
+    namespace: kafka-factory
+    port: 8088
+    localPort: 8088
   - resourceType: Service
     resourceName: postgres
     namespace: kafka-factory

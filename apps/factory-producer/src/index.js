@@ -38,24 +38,32 @@ function pickTopic() {
   return TOPICS[0];
 }
 
-// ─── Avro schema for vehicle-completed ───────────────────────────────────────
+// ─── Kafka Connect JSON schema envelope for vehicle-completed ────────────────
+// The Debezium JDBC sink connector requires messages with an embedded schema.
+// We wrap vehicle-completed events in the Kafka Connect JSON schema envelope.
 
-const VEHICLE_COMPLETED_AVRO_SCHEMA = {
-  type: 'record',
-  name: 'VehicleCompleted',
-  namespace: 'factory',
-  fields: [
-    { name: 'eventType',         type: 'string' },
-    { name: 'vin',               type: 'string' },
-    { name: 'model',             type: 'string' },
-    { name: 'color',             type: 'string' },
-    { name: 'productionTimeMin', type: 'int'    },
-    { name: 'productionLine',    type: 'string' },
-    { name: 'destination',       type: 'string' },
-    { name: 'deliveryDate',      type: 'string' },
-    { name: 'timestamp',         type: 'string' },
-  ],
+const VEHICLE_COMPLETED_SCHEMA_ENVELOPE = {
+  schema: {
+    type: 'struct',
+    fields: [
+      { field: 'eventType',         type: 'string'  },
+      { field: 'vin',               type: 'string'  },
+      { field: 'model',             type: 'string'  },
+      { field: 'color',             type: 'string'  },
+      { field: 'productionTimeMin', type: 'int32'   },
+      { field: 'productionLine',    type: 'string'  },
+      { field: 'destination',       type: 'string'  },
+      { field: 'deliveryDate',      type: 'string'  },
+      { field: 'timestamp',         type: 'string'  },
+    ],
+    optional: false,
+    name: 'VehicleCompleted',
+  },
 };
+
+function wrapWithSchema(payload) {
+  return { ...VEHICLE_COMPLETED_SCHEMA_ENVELOPE, payload };
+}
 
 async function run() {
   const kafka = new Kafka({
@@ -71,7 +79,7 @@ async function run() {
       registry = new SchemaRegistry({ host: SCHEMA_REGISTRY_URL });
       // Register schema once — returns existing id if already registered
       const result = await registry.register(
-        { type: SchemaType.AVRO, schema: JSON.stringify(VEHICLE_COMPLETED_AVRO_SCHEMA) },
+        { type: SchemaType.AVRO, schema: JSON.stringify(VEHICLE_COMPLETED_SCHEMA_ENVELOPE) },
         { subject: 'vehicle-completed-value' }
       );
       schemaId = result.id;
@@ -106,8 +114,11 @@ async function run() {
     if (topic === 'vehicle-completed' && registry && schemaId) {
       // Encode as Avro with schema id prefix (Confluent wire format)
       value = await registry.encode(schemaId, event);
+    } else if (topic === 'vehicle-completed') {
+      // Wrap in Kafka Connect JSON schema envelope for JDBC sink connector
+      value = Buffer.from(JSON.stringify(wrapWithSchema(event)));
     } else {
-      // Plain JSON encoding
+      // Plain JSON encoding for all other topics
       value = Buffer.from(JSON.stringify(event));
     }
 
