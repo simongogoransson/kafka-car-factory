@@ -19,8 +19,8 @@ spec:
     insert.mode: insert
     delete.enabled: false
     key.converter: org.apache.kafka.connect.storage.StringConverter
-    value.converter: org.apache.kafka.connect.json.JsonConverter
-    value.converter.schemas.enable: true
+    value.converter: io.confluent.connect.avro.AvroConverter
+    value.converter.schema.registry.url: http://schema-registry.kafka-factory.svc.cluster.local:8081
     # Start from latest to skip old schemaless messages already in this topic.
     consumer.override.auto.offset.reset: latest
     transforms: RenameFields,KeepFields,ConvertDeliveryDate,ConvertEventTs

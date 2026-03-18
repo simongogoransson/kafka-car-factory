@@ -1,0 +1,46 @@
+# Default values for schema-registry
+replicaCount: 1
+
+image:
+  repository: confluentinc/cp-schema-registry
+  tag: "7.8.7"
+  pullPolicy: IfNotPresent
+
+kafka:
+  bootstrapServers: "factory-kafka-kafka-bootstrap.kafka-factory.svc.cluster.local:9092"
+  topicReplicationFactor: 3
+  timeout: 30000
+
+service:
+  type: ClusterIP
+  port: 8081
+
+resources:
+  requests:
+    memory: 256Mi
+    cpu: "100m"
+  limits:
+    memory: 512Mi
+    cpu: "300m"
+
+livenessProbe:
+  initialDelaySeconds: 60
+  periodSeconds: 20
+  failureThreshold: 5
+
+readinessProbe:
+  initialDelaySeconds: 30
+  periodSeconds: 10
+  failureThreshold: 5
+
+debug: true
+
+extraEnv:
+  - name: SCHEMA_REGISTRY_KAFKASTORE_GROUP_ID
+    value: "schema-registry-default"
+
+# Init container to wait for Kafka
+waitForKafka:
+  enabled: true
+  image: confluentinc/cp-kafka:7.8.7
+

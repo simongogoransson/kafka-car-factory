@@ -27,6 +27,11 @@ spec:
           env:
             - name: KAFKA_BROKERS
               value: factory-kafka-kafka-bootstrap.kafka-factory.svc.cluster.local:9092
+            - name: USE_SCHEMA_REGISTRY
+              value: "false"
+            # Schema Registry disabled - uncomment when available:
+            # - name: SCHEMA_REGISTRY_URL
+            #   value: http://schema-registry.kafka-factory.svc.cluster.local:8081
             - name: HTTP_PORT
               value: "3000"
             - name: WS_PORT

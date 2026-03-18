@@ -1,0 +1,78 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "schema-registry.fullname" . }}
+  labels:
+    {{- include "schema-registry.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "schema-registry.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "schema-registry.selectorLabels" . | nindent 8 }}
+    spec:
+{{- if .Values.waitForKafka.enabled }}
+      initContainers:
+        - name: wait-for-kafka
+          image: {{ .Values.waitForKafka.image }}
+          command:
+            - bash
+            - -c
+            - |
+              echo "Waiting for Kafka to be ready..."
+              until kafka-broker-api-versions --bootstrap-server {{ .Values.kafka.bootstrapServers }} 2>/dev/null; do
+                echo "Kafka is not ready yet. Waiting..."
+                sleep 10
+              done
+              echo "Kafka is ready!"
+{{- end }}
+      containers:
+        - name: schema-registry
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: 8081
+              protocol: TCP
+          env:
+            - name: SCHEMA_REGISTRY_HOST_NAME
+              value: {{ include "schema-registry.fullname" . }}
+            - name: SCHEMA_REGISTRY_LISTENERS
+              value: "http://0.0.0.0:8081"
+            - name: SCHEMA_REGISTRY_KAFKASTORE_BOOTSTRAP_SERVERS
+              value: "PLAINTEXT://{{ .Values.kafka.bootstrapServers }}"
+            - name: SCHEMA_REGISTRY_KAFKASTORE_SECURITY_PROTOCOL
+              value: "PLAINTEXT"
+            - name: SCHEMA_REGISTRY_KAFKASTORE_TOPIC
+              value: "_schemas"
+            - name: SCHEMA_REGISTRY_KAFKASTORE_TOPIC_REPLICATION_FACTOR
+              value: {{ .Values.kafka.topicReplicationFactor | quote }}
+            - name: SCHEMA_REGISTRY_KAFKASTORE_TIMEOUT_MS
+              value: {{ .Values.kafka.timeout | quote }}
+            - name: SCHEMA_REGISTRY_DEBUG
+              value: {{ .Values.debug | quote }}
+            - name: KAFKA_HEAP_OPTS
+              value: "-Xms256M -Xmx256M"
+{{- if .Values.extraEnv }}
+{{- toYaml .Values.extraEnv | nindent 12 }}
+{{- end }}
+          livenessProbe:
+            httpGet:
+              path: /
+              port: http
+            initialDelaySeconds: {{ .Values.livenessProbe.initialDelaySeconds }}
+            periodSeconds: {{ .Values.livenessProbe.periodSeconds }}
+            failureThreshold: {{ .Values.livenessProbe.failureThreshold }}
+          readinessProbe:
+            httpGet:
+              path: /
+              port: http
+            initialDelaySeconds: {{ .Values.readinessProbe.initialDelaySeconds }}
+            periodSeconds: {{ .Values.readinessProbe.periodSeconds }}
+            failureThreshold: {{ .Values.readinessProbe.failureThreshold }}
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+

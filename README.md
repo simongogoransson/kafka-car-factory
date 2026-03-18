@@ -2,11 +2,12 @@
 
 A Kubernetes-based Kafka demo with an **automotive car factory theme**, using:
 
-- **[Strimzi](https://strimzi.io/)** operator — Kafka on Kubernetes
+- **[Strimzi](https://strimzi.io/)** operator — Kafka on Kubernetes (installed via Helm)
 - **KRaft mode** — 3 controllers + 3 brokers (no Zookeeper)
+- **[Schema Registry](https://docs.confluent.io/platform/current/schema-registry/)** — Avro schema management (Helm chart)
 - **[Kafka Connect](https://kafka.apache.org/documentation/#connect)** — sink `vehicle-completed` events into PostgreSQL
 - **PostgreSQL** — analytics table `vehicle_completed_events`
-- **[Skaffold](https://skaffold.dev/)** — dev/deploy workflow
+- **[Skaffold](https://skaffold.dev/)** — dev/deploy workflow with Helm support
 - **[Kafka UI](https://github.com/provectus/kafka-ui)** — topic/consumer browser
 - **[Prometheus](https://prometheus.io/)** — metrics from Strimzi JMX exporter
 - **Factory Dashboard** — real-time Node.js WebSocket dashboard
@@ -17,13 +18,23 @@ A Kubernetes-based Kafka demo with an **automotive car factory theme**, using:
 
 ```
 ┌──────────────────────────────────────────────────────────────┐
+│  Kubernetes — namespace: strimzi-operator                    │
+│  ┌──────────────┐                                            │
+│  │    Strimzi   │                                            │
+│  │   Operator   │  (installed via Helm)                      │
+│  └──────┬───────┘                                            │
+│         │ (watches all namespaces)                           │
+└─────────┼──────────────────────────────────────────────────┘
+          │
+          ▼
+┌──────────────────────────────────────────────────────────────┐
 │  Kubernetes — namespace: kafka-factory                       │
 │                                                              │
-│  ┌──────────────┐    ┌──────────────────────────────────┐   │
-│  │    Strimzi   │    │      Kafka KRaft Cluster         │   │
-│  │   Operator   │───▶│  3 Controllers  +  3 Brokers     │   │
-│  └──────────────┘    └──────────────────────────────────┘   │
-│                                  │                           │
+│  ┌──────────────────────────────────┐                       │
+│  │      Kafka KRaft Cluster         │                       │
+│  │  3 Controllers  +  3 Brokers     │                       │
+│  └──────────────────────────────────┘                       │
+│                  │                                           │
 │          ┌───────────────────────┼────────────────────┐     │
 │          ▼                       ▼                     ▼     │
 │  ┌──────────────────┐  ┌──────────────────┐  ┌─────────────┐│
@@ -59,6 +70,7 @@ A Kubernetes-based Kafka demo with an **automotive car factory theme**, using:
 | `kubectl` | ≥ 1.27 | https://kubernetes.io/docs/tasks/tools/ |
 | `kind` | ≥ 0.23 | `brew install kind` |
 | `skaffold` | ≥ 2.x | https://skaffold.dev/docs/install/ |
+| `helm` | ≥ 3.x | `brew install helm` |
 
 > **Podman machine (macOS):** make sure the Podman machine is running before any step:
 > ```bash
@@ -88,7 +100,7 @@ make setup
 bash scripts/install-strimzi.sh
 ```
 
-This installs the Strimzi CRDs and operator into the `kafka-factory` namespace. Wait ~60s for it to become ready.
+This installs the Strimzi operator via Helm into the `strimzi-operator` namespace. The operator is configured with `watchAnyNamespace=true` to manage Kafka resources in **all namespaces** (including `kafka-factory` and any future namespaces). Wait ~60s for it to become ready.
 
 ### 3. Start the dev loop
 
@@ -190,15 +202,25 @@ kafka-skaffold/
 # Watch all pods
 kubectl get pods -n kafka-factory -w
 
+# Watch operator
+kubectl get pods -n strimzi-operator -w
+
 # All resources
 make status
 
 # Stream logs
 make logs
 
-# Tear down
+# Tear down (keeps operator running)
 make clean
+
+# Complete teardown (including operator)
+kubectl delete namespace kafka-factory strimzi-operator
+# Or uninstall via Helm:
+helm uninstall strimzi-operator -n strimzi-operator
 ```
+
+**Note:** `make clean` only deletes the `kafka-factory` namespace, preserving the Strimzi operator in `strimzi-operator`. This allows you to run `make dev` again without reinstalling the operator. To completely remove everything including the operator, use `helm uninstall strimzi-operator -n strimzi-operator` or delete both namespaces.
 
 ---
 

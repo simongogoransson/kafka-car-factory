@@ -1,4 +1,4 @@
-apiVersion: kafka.strimzi.io/v1beta2
+apiVersion: kafka.strimzi.io/v1
 kind: Kafka
 metadata:
   name: factory-kafka
@@ -27,7 +27,7 @@ spec:
       transaction.state.log.min.isr: 2
       default.replication.factor: 3
       min.insync.replicas: 2
-      auto.create.topics.enable: "false"
+      auto.create.topics.enable: "true"
     metricsConfig:
       type: jmxPrometheusExporter
       valueFrom:

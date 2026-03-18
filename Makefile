@@ -25,4 +25,3 @@ clean:
 ## Delete the Kind cluster entirely
 delete-cluster:
 	kind delete cluster --name $(CLUSTER_NAME)
-

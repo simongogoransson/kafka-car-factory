@@ -1,5 +1,5 @@
 # ─── assembly-line-events ─────────────────────────────────────────────────────
-apiVersion: kafka.strimzi.io/v1beta2
+apiVersion: kafka.strimzi.io/v1
 kind: KafkaTopic
 metadata:
   name: assembly-line-events
@@ -15,7 +15,7 @@ spec:
     cleanup.policy: delete
 ---
 # ─── quality-control-results ──────────────────────────────────────────────────
-apiVersion: kafka.strimzi.io/v1beta2
+apiVersion: kafka.strimzi.io/v1
 kind: KafkaTopic
 metadata:
   name: quality-control-results
@@ -31,7 +31,7 @@ spec:
     cleanup.policy: delete
 ---
 # ─── vehicle-completed ────────────────────────────────────────────────────────
-apiVersion: kafka.strimzi.io/v1beta2
+apiVersion: kafka.strimzi.io/v1
 kind: KafkaTopic
 metadata:
   name: vehicle-completed
@@ -47,7 +47,7 @@ spec:
     cleanup.policy: delete
 ---
 # ─── parts-inventory ──────────────────────────────────────────────────────────
-apiVersion: kafka.strimzi.io/v1beta2
+apiVersion: kafka.strimzi.io/v1
 kind: KafkaTopic
 metadata:
   name: parts-inventory
@@ -63,7 +63,7 @@ spec:
     cleanup.policy: delete
 ---
 # ─── engine-production ────────────────────────────────────────────────────────
-apiVersion: kafka.strimzi.io/v1beta2
+apiVersion: kafka.strimzi.io/v1
 kind: KafkaTopic
 metadata:
   name: engine-production
@@ -79,7 +79,7 @@ spec:
     cleanup.policy: delete
 ---
 # ─── paint-shop-events ────────────────────────────────────────────────────────
-apiVersion: kafka.strimzi.io/v1beta2
+apiVersion: kafka.strimzi.io/v1
 kind: KafkaTopic
 metadata:
   name: paint-shop-events

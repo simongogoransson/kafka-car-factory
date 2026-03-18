@@ -3,8 +3,18 @@
 const { Kafka, logLevel } = require('kafkajs');
 const { generateEvent } = require('./events');
 
-const BROKERS = (process.env.KAFKA_BROKERS || 'localhost:9092').split(',');
-const CLIENT_ID = 'factory-producer';
+const BROKERS          = (process.env.KAFKA_BROKERS || 'localhost:9092').split(',');
+const SCHEMA_REGISTRY_URL = process.env.SCHEMA_REGISTRY_URL || 'http://localhost:8081';
+const USE_SCHEMA_REGISTRY = process.env.USE_SCHEMA_REGISTRY === 'true';
+const CLIENT_ID        = 'factory-producer';
+
+// Only require Schema Registry if enabled
+let SchemaRegistry, SchemaType;
+if (USE_SCHEMA_REGISTRY) {
+  const schemaRegistryModule = require('@kafkajs/confluent-schema-registry');
+  SchemaRegistry = schemaRegistryModule.SchemaRegistry;
+  SchemaType = schemaRegistryModule.SchemaType;
+}
 
 const TOPICS = [
   'assembly-line-events',
@@ -28,45 +38,54 @@ function pickTopic() {
   return TOPICS[0];
 }
 
-const VEHICLE_COMPLETED_CONNECT_SCHEMA = {
-  type: 'struct',
-  name: 'factory.vehicle_completed.v1',
-  optional: false,
+// ─── Avro schema for vehicle-completed ───────────────────────────────────────
+
+const VEHICLE_COMPLETED_AVRO_SCHEMA = {
+  type: 'record',
+  name: 'VehicleCompleted',
+  namespace: 'factory',
   fields: [
-    { field: 'eventType', type: 'string', optional: false },
-    { field: 'vin', type: 'string', optional: false },
-    { field: 'model', type: 'string', optional: false },
-    { field: 'color', type: 'string', optional: false },
-    { field: 'productionTimeMin', type: 'int32', optional: false },
-    { field: 'productionLine', type: 'string', optional: false },
-    { field: 'destination', type: 'string', optional: false },
-    { field: 'deliveryDate', type: 'string', optional: false },
-    { field: 'timestamp', type: 'string', optional: false },
+    { name: 'eventType',         type: 'string' },
+    { name: 'vin',               type: 'string' },
+    { name: 'model',             type: 'string' },
+    { name: 'color',             type: 'string' },
+    { name: 'productionTimeMin', type: 'int'    },
+    { name: 'productionLine',    type: 'string' },
+    { name: 'destination',       type: 'string' },
+    { name: 'deliveryDate',      type: 'string' },
+    { name: 'timestamp',         type: 'string' },
   ],
 };
-
-function serializeForTopic(topic, event) {
-  if (topic !== 'vehicle-completed') return JSON.stringify(event);
-
-  return JSON.stringify({
-    schema: VEHICLE_COMPLETED_CONNECT_SCHEMA,
-    payload: event,
-  });
-}
 
 async function run() {
   const kafka = new Kafka({
     clientId: CLIENT_ID,
     brokers: BROKERS,
     logLevel: logLevel.WARN,
-    retry: {
-      initialRetryTime: 3000,
-      retries: 10,
-    },
+    retry: { initialRetryTime: 3000, retries: 10 },
   });
 
+  let registry, schemaId;
+  if (USE_SCHEMA_REGISTRY) {
+    try {
+      registry = new SchemaRegistry({ host: SCHEMA_REGISTRY_URL });
+      // Register schema once — returns existing id if already registered
+      const result = await registry.register(
+        { type: SchemaType.AVRO, schema: JSON.stringify(VEHICLE_COMPLETED_AVRO_SCHEMA) },
+        { subject: 'vehicle-completed-value' }
+      );
+      schemaId = result.id;
+      console.log(`[factory-producer] vehicle-completed Avro schema registered (id: ${schemaId})`);
+      console.log(`[factory-producer] Schema Registry enabled at ${SCHEMA_REGISTRY_URL}`);
+    } catch (err) {
+      console.warn(`[factory-producer] Schema Registry unavailable: ${err.message}`);
+      console.log('[factory-producer] Falling back to plain JSON encoding');
+      registry = null;
+    }
+  } else {
+    console.log('[factory-producer] Schema Registry disabled - using plain JSON encoding');
+  }
   const producer = kafka.producer();
-
   console.log(`[factory-producer] Connecting to Kafka at ${BROKERS.join(', ')}...`);
   await producer.connect();
   console.log('[factory-producer] Connected. Starting event generation...');
@@ -83,15 +102,22 @@ async function run() {
     const topic = pickTopic();
     const event = generateEvent(topic);
 
+    let value;
+    if (topic === 'vehicle-completed' && registry && schemaId) {
+      // Encode as Avro with schema id prefix (Confluent wire format)
+      value = await registry.encode(schemaId, event);
+    } else {
+      // Plain JSON encoding
+      value = Buffer.from(JSON.stringify(event));
+    }
+
     await producer.send({
       topic,
-      messages: [
-        {
-          key: event.vin || event.partNumber || event.engineSerial || String(event.id || Date.now()),
-          value: serializeForTopic(topic, event),
-          timestamp: String(Date.now()),
-        },
-      ],
+      messages: [{
+        key: event.vin || event.partNumber || event.engineSerial || String(Date.now()),
+        value,
+        timestamp: String(Date.now()),
+      }],
     });
 
     eventCount++;
@@ -99,7 +125,6 @@ async function run() {
       console.log(`[factory-producer] ${eventCount} events sent. Last: [${topic}] ${event.vin || event.partNumber || ''}`);
     }
 
-    // Random interval: 300ms – 2500ms
     const delay = 300 + Math.floor(Math.random() * 2200);
     await new Promise((r) => setTimeout(r, delay));
   }

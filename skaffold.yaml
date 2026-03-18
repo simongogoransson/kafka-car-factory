@@ -42,6 +42,14 @@ manifests:
     - k8s/factory-app/deployment-producer.yaml
     - k8s/factory-app/deployment-dashboard.yaml
     - k8s/factory-app/service-dashboard.yaml
+  # Schema Registry - commented out for now
+  # helm:
+  #   releases:
+  #     - name: schema-registry
+  #       chartPath: helm/schema-registry
+  #       namespace: kafka-factory
+  #       createNamespace: false
+  #       wait: true
 
 deploy:
   kubectl:
@@ -73,3 +81,9 @@ portForward:
     namespace: kafka-factory
     port: 5432
     localPort: 5433
+  # Schema Registry - commented out
+  # - resourceType: Service
+  #   resourceName: schema-registry
+  #   namespace: kafka-factory
+  #   port: 8081
+  #   localPort: 8081
