@@ -13,6 +13,10 @@ build:
       context: apps/factory-dashboard
       docker:
         dockerfile: Dockerfile
+    - image: factory-delivered-cars
+      context: apps/factory-delivered-cars
+      docker:
+        dockerfile: Dockerfile
     - image: factory-connect
       context: apps/factory-connect
       docker:
@@ -43,6 +47,8 @@ manifests:
     - k8s/factory-app/deployment-producer.yaml
     - k8s/factory-app/deployment-dashboard.yaml
     - k8s/factory-app/service-dashboard.yaml
+    - k8s/factory-app/deployment-delivered-cars.yaml
+    - k8s/factory-app/service-delivered-cars.yaml
   # Schema Registry - commented out for now
   # helm:
   #   releases:
@@ -87,6 +93,11 @@ portForward:
     namespace: kafka-car-factory
     port: 5432
     localPort: 5433
+  - resourceType: Service
+    resourceName: factory-delivered-cars
+    namespace: kafka-car-factory
+    port: 8085
+    localPort: 8085
   # Schema Registry - commented out
   # - resourceType: Service
   #   resourceName: schema-registry

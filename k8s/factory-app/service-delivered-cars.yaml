@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: factory-delivered-cars
+  namespace: kafka-car-factory
+  labels:
+    app: factory-delivered-cars
+    app.kubernetes.io/part-of: kafka-car-factory-demo
+spec:
+  selector:
+    app: factory-delivered-cars
+  ports:
+    - name: http
+      port: 8085
+      targetPort: 8085
+  type: ClusterIP

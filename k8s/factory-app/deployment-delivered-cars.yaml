@@ -1,0 +1,63 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: factory-delivered-cars
+  namespace: kafka-car-factory
+  labels:
+    app: factory-delivered-cars
+    app.kubernetes.io/part-of: kafka-car-factory-demo
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: factory-delivered-cars
+  template:
+    metadata:
+      labels:
+        app: factory-delivered-cars
+    spec:
+      containers:
+        - name: factory-delivered-cars
+          image: factory-delivered-cars
+          ports:
+            - name: http
+              containerPort: 8085
+          env:
+            - name: SPRING_DATASOURCE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-credentials
+                  key: jdbc-url
+            - name: SPRING_DATASOURCE_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-credentials
+                  key: username
+            - name: SPRING_DATASOURCE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-credentials
+                  key: password
+            - name: SERVER_PORT
+              value: "8085"
+            - name: CARS_PAGE_SIZE
+              value: "150"
+          resources:
+            requests:
+              memory: 256Mi
+              cpu: "200m"
+            limits:
+              memory: 512Mi
+              cpu: "500m"
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8085
+            initialDelaySeconds: 30
+            periodSeconds: 15
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8085
+            initialDelaySeconds: 10
+            periodSeconds: 10

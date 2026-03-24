@@ -120,6 +120,7 @@ Skaffold automatically uses the Podman socket (`DOCKER_HOST`) to build container
 | App | URL |
 |-----|-----|
 | 🏭 Factory Dashboard | http://localhost:3000 |
+| 🚚 Delivered Cars UI | http://localhost:8085 |
 | 📊 Kafka UI | http://localhost:8080 |
 | 📈 Prometheus | http://localhost:9090 |
 
@@ -176,7 +177,9 @@ kafka-skaffold/
 │   └── factory-app/
 │       ├── deployment-producer.yaml
 │       ├── deployment-dashboard.yaml
-│       └── service-dashboard.yaml
+│       ├── service-dashboard.yaml
+│       ├── deployment-delivered-cars.yaml
+│       └── service-delivered-cars.yaml
 └── apps/
     ├── factory-producer/            # KafkaJS event generator
     │   ├── Dockerfile
@@ -192,6 +195,12 @@ kafka-skaffold/
             ├── consumer.js          # KafkaJS consumer → WS broadcast
             └── public/
                 └── index.html       # Live event dashboard
+    └── factory-delivered-cars/      # Spring Boot UI for delivered cars from Postgres
+      ├── Dockerfile
+      ├── pom.xml
+      └── src/main/
+        ├── java/com/factory/deliveredcars/
+        └── resources/templates/index.html
 ```
 
 ---
