@@ -1,7 +1,7 @@
 .PHONY: cluster setup dev clean delete-cluster
 
-NAMESPACE    := kafka-factory
-CLUSTER_NAME := kafka-factory
+NAMESPACE    := kafka-car-factory
+CLUSTER_NAME := kafka-car-factory
 PODMAN_SOCK  ?= $(shell podman machine inspect --format '{{.ConnectionInfo.PodmanSocket.Path}}' 2>/dev/null)
 export DOCKER_HOST := unix://$(PODMAN_SOCK)
 

@@ -3,10 +3,10 @@ apiVersion: kafka.strimzi.io/v1
 kind: KafkaTopic
 metadata:
   name: factory-connect-configs
-  namespace: kafka-factory
+  namespace: kafka-car-factory
   labels:
     strimzi.io/cluster: factory-kafka
-    app.kubernetes.io/part-of: kafka-factory-demo
+    app.kubernetes.io/part-of: kafka-car-factory-demo
 spec:
   partitions: 1
   replicas: 3
@@ -17,10 +17,10 @@ apiVersion: kafka.strimzi.io/v1
 kind: KafkaTopic
 metadata:
   name: factory-connect-offsets
-  namespace: kafka-factory
+  namespace: kafka-car-factory
   labels:
     strimzi.io/cluster: factory-kafka
-    app.kubernetes.io/part-of: kafka-factory-demo
+    app.kubernetes.io/part-of: kafka-car-factory-demo
 spec:
   partitions: 3
   replicas: 3
@@ -31,10 +31,10 @@ apiVersion: kafka.strimzi.io/v1
 kind: KafkaTopic
 metadata:
   name: factory-connect-status
-  namespace: kafka-factory
+  namespace: kafka-car-factory
   labels:
     strimzi.io/cluster: factory-kafka
-    app.kubernetes.io/part-of: kafka-factory-demo
+    app.kubernetes.io/part-of: kafka-car-factory-demo
 spec:
   partitions: 3
   replicas: 3

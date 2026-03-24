@@ -7,7 +7,7 @@ image:
   pullPolicy: IfNotPresent
 
 kafka:
-  bootstrapServers: "factory-kafka-kafka-bootstrap.kafka-factory.svc.cluster.local:9092"
+  bootstrapServers: "factory-kafka-kafka-bootstrap.kafka-car-factory.svc.cluster.local:9092"
   topicReplicationFactor: 3
   timeout: 30000
 

@@ -1,7 +1,7 @@
 apiVersion: skaffold/v4beta11
 kind: Config
 metadata:
-  name: kafka-factory-demo
+  name: kafka-car-factory-demo
 
 build:
   artifacts:
@@ -48,48 +48,48 @@ manifests:
   #   releases:
   #     - name: schema-registry
   #       chartPath: helm/schema-registry
-  #       namespace: kafka-factory
+  #       namespace: kafka-car-factory
   #       createNamespace: false
   #       wait: true
 
 deploy:
   kubectl:
-    defaultNamespace: kafka-factory
+    defaultNamespace: kafka-car-factory
 
 portForward:
   - resourceType: Service
     resourceName: factory-dashboard
-    namespace: kafka-factory
+    namespace: kafka-car-factory
     port: 3000
     localPort: 3000
   - resourceType: Service
     resourceName: factory-dashboard
-    namespace: kafka-factory
+    namespace: kafka-car-factory
     port: 3001
     localPort: 3001
   - resourceType: Service
     resourceName: kafka-ui
-    namespace: kafka-factory
+    namespace: kafka-car-factory
     port: 8080
     localPort: 8080
   - resourceType: Service
     resourceName: prometheus
-    namespace: kafka-factory
+    namespace: kafka-car-factory
     port: 9090
     localPort: 9090
   - resourceType: Service
     resourceName: ksqldb-server
-    namespace: kafka-factory
+    namespace: kafka-car-factory
     port: 8088
     localPort: 8088
   - resourceType: Service
     resourceName: postgres
-    namespace: kafka-factory
+    namespace: kafka-car-factory
     port: 5432
     localPort: 5433
   # Schema Registry - commented out
   # - resourceType: Service
   #   resourceName: schema-registry
-  #   namespace: kafka-factory
+  #   namespace: kafka-car-factory
   #   port: 8081
   #   localPort: 8081

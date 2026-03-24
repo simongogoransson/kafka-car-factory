@@ -28,7 +28,7 @@ A Kubernetes-based Kafka demo with an **automotive car factory theme**, using:
           │
           ▼
 ┌──────────────────────────────────────────────────────────────┐
-│  Kubernetes — namespace: kafka-factory                       │
+│  Kubernetes — namespace: kafka-car-factory                       │
 │                                                              │
 │  ┌──────────────────────────────────┐                       │
 │  │      Kafka KRaft Cluster         │                       │
@@ -87,7 +87,7 @@ A Kubernetes-based Kafka demo with an **automotive car factory theme**, using:
 ```bash
 make cluster
 # or manually:
-KIND_EXPERIMENTAL_PROVIDER=podman kind create cluster --name kafka-factory --wait 90s
+KIND_EXPERIMENTAL_PROVIDER=podman kind create cluster --name kafka-car-factory --wait 90s
 ```
 
 Kind runs each Kubernetes node as a Podman container — no VMs needed.
@@ -100,7 +100,7 @@ make setup
 bash scripts/install-strimzi.sh
 ```
 
-This installs the Strimzi operator via Helm into the `strimzi-operator` namespace. The operator is configured with `watchAnyNamespace=true` to manage Kafka resources in **all namespaces** (including `kafka-factory` and any future namespaces). Wait ~60s for it to become ready.
+This installs the Strimzi operator via Helm into the `strimzi-operator` namespace. The operator is configured with `watchAnyNamespace=true` to manage Kafka resources in **all namespaces** (including `kafka-car-factory` and any future namespaces). Wait ~60s for it to become ready.
 
 ### 3. Start the dev loop
 
@@ -132,8 +132,8 @@ This repo now includes a Kafka Connect sink that writes the `vehicle-completed` 
 After `skaffold dev --port-forward`, verify it with:
 
 ```bash
-kubectl get kafkaconnector vehicle-completed-postgres-sink -n kafka-factory
-kubectl get pods -n kafka-factory | grep -E 'factory-connect|postgres'
+kubectl get kafkaconnector vehicle-completed-postgres-sink -n kafka-car-factory
+kubectl get pods -n kafka-car-factory | grep -E 'factory-connect|postgres'
 ```
 
 Query PostgreSQL (port-forwarded to `localhost:5433` by Skaffold):
@@ -200,7 +200,7 @@ kafka-skaffold/
 
 ```bash
 # Watch all pods
-kubectl get pods -n kafka-factory -w
+kubectl get pods -n kafka-car-factory -w
 
 # Watch operator
 kubectl get pods -n strimzi-operator -w
@@ -215,12 +215,12 @@ make logs
 make clean
 
 # Complete teardown (including operator)
-kubectl delete namespace kafka-factory strimzi-operator
+kubectl delete namespace kafka-car-factory strimzi-operator
 # Or uninstall via Helm:
 helm uninstall strimzi-operator -n strimzi-operator
 ```
 
-**Note:** `make clean` only deletes the `kafka-factory` namespace, preserving the Strimzi operator in `strimzi-operator`. This allows you to run `make dev` again without reinstalling the operator. To completely remove everything including the operator, use `helm uninstall strimzi-operator -n strimzi-operator` or delete both namespaces.
+**Note:** `make clean` only deletes the `kafka-car-factory` namespace, preserving the Strimzi operator in `strimzi-operator`. This allows you to run `make dev` again without reinstalling the operator. To completely remove everything including the operator, use `helm uninstall strimzi-operator -n strimzi-operator` or delete both namespaces.
 
 ---
 

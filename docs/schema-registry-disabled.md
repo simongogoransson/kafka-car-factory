@@ -38,7 +38,7 @@ helm:
   releases:
     - name: schema-registry
       chartPath: helm/schema-registry
-      namespace: kafka-factory
+      namespace: kafka-car-factory
       createNamespace: false
       wait: true
 ```
@@ -47,7 +47,7 @@ helm:
 ```yaml
 - resourceType: Service
   resourceName: schema-registry
-  namespace: kafka-factory
+  namespace: kafka-car-factory
   port: 8081
   localPort: 8081
 ```
@@ -64,7 +64,7 @@ env:
   - name: USE_SCHEMA_REGISTRY
     value: "true"  # Change from false to true
   - name: SCHEMA_REGISTRY_URL
-    value: http://schema-registry.kafka-factory.svc.cluster.local:8081  # Uncomment
+    value: http://schema-registry.kafka-car-factory.svc.cluster.local:8081  # Uncomment
 ```
 
 ### 3. In `k8s/factory-app/deployment-dashboard.yaml`:
@@ -74,7 +74,7 @@ env:
   - name: USE_SCHEMA_REGISTRY
     value: "true"  # Change from false to true
   - name: SCHEMA_REGISTRY_URL
-    value: http://schema-registry.kafka-factory.svc.cluster.local:8081  # Uncomment
+    value: http://schema-registry.kafka-car-factory.svc.cluster.local:8081  # Uncomment
 ```
 
 ## Known Issues

@@ -2,16 +2,16 @@ apiVersion: kafka.strimzi.io/v1
 kind: KafkaConnector
 metadata:
   name: vehicle-completed-postgres-sink
-  namespace: kafka-factory
+  namespace: kafka-car-factory
   labels:
     strimzi.io/cluster: factory-connect
-    app.kubernetes.io/part-of: kafka-factory-demo
+    app.kubernetes.io/part-of: kafka-car-factory-demo
 spec:
   class: io.debezium.connector.jdbc.JdbcSinkConnector
   tasksMax: 1
   config:
     topics: vehicle-completed
-    connection.url: jdbc:postgresql://postgres.kafka-factory.svc.cluster.local:5432/factory_analytics
+    connection.url: jdbc:postgresql://postgres.kafka-car-factory.svc.cluster.local:5432/factory_analytics
     connection.username: factory
     connection.password: factory
     table.name.format: vehicle_completed_events
@@ -23,7 +23,7 @@ spec:
     value.converter.schemas.enable: "true"
     # Schema Registry disabled - using plain JSON
     # value.converter: io.confluent.connect.avro.AvroConverter
-    # value.converter.schema.registry.url: http://schema-registry.kafka-factory.svc.cluster.local:8081
+    # value.converter.schema.registry.url: http://schema-registry.kafka-car-factory.svc.cluster.local:8081
     # Start from latest to skip old schemaless messages already in this topic.
     consumer.override.auto.offset.reset: latest
     transforms: RenameFields,KeepFields,ConvertDeliveryDate,ConvertEventTs

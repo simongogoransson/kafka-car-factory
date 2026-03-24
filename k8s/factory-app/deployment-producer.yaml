@@ -2,10 +2,10 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: factory-producer
-  namespace: kafka-factory
+  namespace: kafka-car-factory
   labels:
     app: factory-producer
-    app.kubernetes.io/part-of: kafka-factory-demo
+    app.kubernetes.io/part-of: kafka-car-factory-demo
 spec:
   replicas: 1
   selector:
@@ -21,12 +21,12 @@ spec:
           image: factory-producer
           env:
             - name: KAFKA_BROKERS
-              value: factory-kafka-kafka-bootstrap.kafka-factory.svc.cluster.local:9092
+              value: factory-kafka-kafka-bootstrap.kafka-car-factory.svc.cluster.local:9092
             - name: USE_SCHEMA_REGISTRY
               value: "false"
             # Schema Registry disabled - uncomment when available:
             # - name: SCHEMA_REGISTRY_URL
-            #   value: http://schema-registry.kafka-factory.svc.cluster.local:8081
+            #   value: http://schema-registry.kafka-car-factory.svc.cluster.local:8081
             - name: NODE_ENV
               value: production
           resources:

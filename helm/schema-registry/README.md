@@ -11,7 +11,7 @@ The following table lists the configurable parameters:
 | `replicaCount` | Number of Schema Registry replicas | `1` |
 | `image.repository` | Schema Registry image repository | `confluentinc/cp-schema-registry` |
 | `image.tag` | Schema Registry image tag | `7.8.7` |
-| `kafka.bootstrapServers` | Kafka bootstrap servers | `factory-kafka-kafka-bootstrap.kafka-factory.svc.cluster.local:9092` |
+| `kafka.bootstrapServers` | Kafka bootstrap servers | `factory-kafka-kafka-bootstrap.kafka-car-factory.svc.cluster.local:9092` |
 | `kafka.topicReplicationFactor` | Replication factor for _schemas topic | `3` |
 | `waitForKafka.enabled` | Enable init container to wait for Kafka | `true` |
 | `service.type` | Kubernetes service type | `ClusterIP` |
@@ -41,7 +41,7 @@ resources:
 
 ```bash
 helm install schema-registry ./helm/schema-registry \
-  --namespace kafka-factory \
+  --namespace kafka-car-factory \
   --create-namespace
 ```
 
@@ -49,12 +49,12 @@ helm install schema-registry ./helm/schema-registry \
 
 ```bash
 helm upgrade schema-registry ./helm/schema-registry \
-  --namespace kafka-factory
+  --namespace kafka-car-factory
 ```
 
 ## Uninstall
 
 ```bash
-helm uninstall schema-registry -n kafka-factory
+helm uninstall schema-registry -n kafka-car-factory
 ```
 

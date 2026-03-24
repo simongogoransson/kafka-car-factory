@@ -2,16 +2,16 @@ apiVersion: kafka.strimzi.io/v1
 kind: KafkaConnect
 metadata:
   name: factory-connect
-  namespace: kafka-factory
+  namespace: kafka-car-factory
   annotations:
     strimzi.io/use-connector-resources: "true"
   labels:
-    app.kubernetes.io/part-of: kafka-factory-demo
+    app.kubernetes.io/part-of: kafka-car-factory-demo
 spec:
   version: 4.1.0
   replicas: 1
   image: factory-connect
-  bootstrapServers: factory-kafka-kafka-bootstrap.kafka-factory.svc.cluster.local:9092
+  bootstrapServers: factory-kafka-kafka-bootstrap.kafka-car-factory.svc.cluster.local:9092
   groupId: factory-connect-cluster
   configStorageTopic: factory-connect-configs
   offsetStorageTopic: factory-connect-offsets

@@ -2,12 +2,12 @@ apiVersion: kafka.strimzi.io/v1
 kind: Kafka
 metadata:
   name: factory-kafka
-  namespace: kafka-factory
+  namespace: kafka-car-factory
   annotations:
     strimzi.io/node-pools: enabled
     strimzi.io/kraft: enabled
   labels:
-    app.kubernetes.io/part-of: kafka-factory-demo
+    app.kubernetes.io/part-of: kafka-car-factory-demo
 spec:
   kafka:
     version: 4.1.0

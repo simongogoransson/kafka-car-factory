@@ -2,10 +2,10 @@ apiVersion: kafka.strimzi.io/v1
 kind: KafkaNodePool
 metadata:
   name: broker
-  namespace: kafka-factory
+  namespace: kafka-car-factory
   labels:
     strimzi.io/cluster: factory-kafka
-    app.kubernetes.io/part-of: kafka-factory-demo
+    app.kubernetes.io/part-of: kafka-car-factory-demo
 spec:
   replicas: 3
   roles:

@@ -6,7 +6,7 @@
 set -euo pipefail
 
 OPERATOR_NAMESPACE="strimzi-operator"
-APP_NAMESPACE="kafka-factory"
+APP_NAMESPACE="kafka-car-factory"
 
 echo "==> Checking if Helm is installed..."
 if ! command -v helm &> /dev/null; then

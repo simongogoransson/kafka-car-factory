@@ -45,7 +45,7 @@ manifests:
     releases:
       - name: schema-registry
         chartPath: helm/schema-registry
-        namespace: kafka-factory
+        namespace: kafka-car-factory
         createNamespace: false
         wait: true
 ```
@@ -65,10 +65,10 @@ manifests:
 helm lint helm/schema-registry
 
 # Dry run / template rendering
-helm template schema-registry helm/schema-registry --namespace kafka-factory
+helm template schema-registry helm/schema-registry --namespace kafka-car-factory
 
 # Install manually (optional - Skaffold does this)
-helm install schema-registry helm/schema-registry -n kafka-factory
+helm install schema-registry helm/schema-registry -n kafka-car-factory
 ```
 
 ### Next Steps

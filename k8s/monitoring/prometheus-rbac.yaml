@@ -2,16 +2,16 @@ apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: prometheus
-  namespace: kafka-factory
+  namespace: kafka-car-factory
   labels:
-    app.kubernetes.io/part-of: kafka-factory-demo
+    app.kubernetes.io/part-of: kafka-car-factory-demo
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
-  name: kafka-factory-prometheus
+  name: kafka-car-factory-prometheus
   labels:
-    app.kubernetes.io/part-of: kafka-factory-demo
+    app.kubernetes.io/part-of: kafka-car-factory-demo
 rules:
   - apiGroups: [""]
     resources:
@@ -31,14 +31,14 @@ rules:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
-  name: kafka-factory-prometheus
+  name: kafka-car-factory-prometheus
   labels:
-    app.kubernetes.io/part-of: kafka-factory-demo
+    app.kubernetes.io/part-of: kafka-car-factory-demo
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
-  name: kafka-factory-prometheus
+  name: kafka-car-factory-prometheus
 subjects:
   - kind: ServiceAccount
     name: prometheus
-    namespace: kafka-factory
+    namespace: kafka-car-factory
