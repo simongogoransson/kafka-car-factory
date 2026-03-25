@@ -16,6 +16,7 @@ spec:
       labels:
         app: factory-dashboard
     spec:
+      serviceAccountName: factory-dashboard
       containers:
         - name: factory-dashboard
           image: factory-dashboard
@@ -36,6 +37,16 @@ spec:
               value: "3000"
             - name: WS_PORT
               value: "3001"
+            - name: PRODUCER_CONTROL_URL
+              value: http://factory-producer-control.kafka-car-factory.svc.cluster.local:3002
+            - name: DASHBOARD_NAMESPACE
+              value: kafka-car-factory
+            - name: BROKER_NODEPOOL_NAME
+              value: broker
+            - name: BROKER_SCALE_UP_REPLICAS
+              value: "4"
+            - name: BROKER_SCALE_BASE_REPLICAS
+              value: "3"
             - name: NODE_ENV
               value: production
           resources:

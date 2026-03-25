@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: factory-producer-control
+  namespace: kafka-car-factory
+  labels:
+    app: factory-producer
+    app.kubernetes.io/part-of: kafka-car-factory-demo
+spec:
+  selector:
+    app: factory-producer
+  ports:
+    - name: http-control
+      port: 3002
+      targetPort: 3002
+  type: ClusterIP

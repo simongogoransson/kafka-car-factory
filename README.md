@@ -124,6 +124,8 @@ Skaffold automatically uses the Podman socket (`DOCKER_HOST`) to build container
 | 📊 Kafka UI | http://localhost:8080 |
 | 📈 Prometheus | http://localhost:9090 |
 
+The dashboard includes demo controls to switch between normal and heavy producer load. In heavy mode, it also requests a broker node pool scale-up via the Strimzi KafkaNodePool resource.
+
 ---
 
 ## Kafka Connect Sink Demo
@@ -242,6 +244,8 @@ Key metrics available:
 - `kafka_server_replicamanager_underreplicatedpartitions` — replication health
 - `kafka_network_requestmetrics_requestspersec_total` — request throughput
 - `kafka_controller_*` — KRaft controller metrics
+- `factory_producer_load_profile{profile="heavy|normal"}` — active demo load mode on the producer
+- `factory_producer_events_sent_total` — total producer events emitted during the demo
 
 ---
 

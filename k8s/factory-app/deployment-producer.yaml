@@ -15,15 +15,24 @@ spec:
     metadata:
       labels:
         app: factory-producer
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "3002"
+        prometheus.io/path: "/metrics"
     spec:
       containers:
         - name: factory-producer
           image: factory-producer
+          ports:
+            - name: control
+              containerPort: 3002
           env:
             - name: KAFKA_BROKERS
               value: factory-kafka-kafka-bootstrap.kafka-car-factory.svc.cluster.local:9092
             - name: USE_SCHEMA_REGISTRY
               value: "false"
+            - name: CONTROL_PORT
+              value: "3002"
             # Schema Registry disabled - uncomment when available:
             # - name: SCHEMA_REGISTRY_URL
             #   value: http://schema-registry.kafka-car-factory.svc.cluster.local:8081

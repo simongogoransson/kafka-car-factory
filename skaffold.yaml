@@ -45,6 +45,8 @@ manifests:
     - k8s/ksqldb/ksqldb.yaml
     - k8s/kafka-ui/kafka-ui.yaml
     - k8s/factory-app/deployment-producer.yaml
+    - k8s/factory-app/service-producer-control.yaml
+    - k8s/factory-app/rbac-dashboard-scaling.yaml
     - k8s/factory-app/deployment-dashboard.yaml
     - k8s/factory-app/service-dashboard.yaml
     - k8s/factory-app/deployment-delivered-cars.yaml

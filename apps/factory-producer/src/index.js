@@ -1,5 +1,6 @@
 'use strict';
 
+const http = require('http');
 const { Kafka, logLevel } = require('kafkajs');
 const { generateEvent } = require('./events');
 
@@ -7,6 +8,16 @@ const BROKERS          = (process.env.KAFKA_BROKERS || 'localhost:9092').split('
 const SCHEMA_REGISTRY_URL = process.env.SCHEMA_REGISTRY_URL || 'http://localhost:8081';
 const USE_SCHEMA_REGISTRY = process.env.USE_SCHEMA_REGISTRY === 'true';
 const CLIENT_ID        = 'factory-producer';
+const CONTROL_PORT     = parseInt(process.env.CONTROL_PORT || '3002', 10);
+
+const LOAD_PROFILES = {
+  normal: { minDelayMs: 300, maxDelayMs: 2500, label: 'Normal load' },
+  heavy: { minDelayMs: 25, maxDelayMs: 120, label: 'Heavy load' },
+};
+
+let currentLoadProfile = LOAD_PROFILES.heavy && process.env.LOAD_PROFILE === 'heavy' ? 'heavy' : 'normal';
+let totalEventsSent = 0;
+let loadProfileChanges = 0;
 
 // Only require Schema Registry if enabled
 let SchemaRegistry, SchemaType;
@@ -65,6 +76,104 @@ function wrapWithSchema(payload) {
   return { ...VEHICLE_COMPLETED_SCHEMA_ENVELOPE, payload };
 }
 
+function getLoadState() {
+  return {
+    profile: currentLoadProfile,
+    label: LOAD_PROFILES[currentLoadProfile].label,
+    delay: LOAD_PROFILES[currentLoadProfile],
+    eventsTotal: totalEventsSent,
+  };
+}
+
+function renderMetrics() {
+  const lines = [
+    '# HELP factory_producer_load_profile Current producer load profile as a labeled gauge.',
+    '# TYPE factory_producer_load_profile gauge',
+    `factory_producer_load_profile{profile="normal"} ${currentLoadProfile === 'normal' ? 1 : 0}`,
+    `factory_producer_load_profile{profile="heavy"} ${currentLoadProfile === 'heavy' ? 1 : 0}`,
+    '# HELP factory_producer_events_sent_total Total number of events sent by the producer.',
+    '# TYPE factory_producer_events_sent_total counter',
+    `factory_producer_events_sent_total ${totalEventsSent}`,
+    '# HELP factory_producer_load_profile_changes_total Total number of producer load profile changes.',
+    '# TYPE factory_producer_load_profile_changes_total counter',
+    `factory_producer_load_profile_changes_total ${loadProfileChanges}`,
+    '',
+  ];
+
+  return lines.join('\n');
+}
+
+function setLoadProfile(profile) {
+  if (!LOAD_PROFILES[profile]) {
+    return false;
+  }
+
+  if (currentLoadProfile !== profile) {
+    loadProfileChanges++;
+  }
+
+  currentLoadProfile = profile;
+  console.log(`[factory-producer] Load profile changed to ${LOAD_PROFILES[profile].label.toLowerCase()}`);
+  return true;
+}
+
+function startControlServer() {
+  const server = http.createServer((req, res) => {
+    const url = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
+
+    if (req.method === 'GET' && url.pathname === '/health') {
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ status: 'ok', ...getLoadState() }));
+      return;
+    }
+
+    if (req.method === 'GET' && url.pathname === '/control/state') {
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify(getLoadState()));
+      return;
+    }
+
+    if (req.method === 'GET' && url.pathname === '/metrics') {
+      res.writeHead(200, { 'Content-Type': 'text/plain; version=0.0.4; charset=utf-8' });
+      res.end(renderMetrics());
+      return;
+    }
+
+    if (req.method === 'POST' && url.pathname === '/control/load-profile') {
+      let body = '';
+      req.on('data', (chunk) => {
+        body += chunk;
+      });
+      req.on('end', () => {
+        try {
+          const payload = body ? JSON.parse(body) : {};
+          if (!setLoadProfile(payload.profile)) {
+            res.writeHead(400, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ error: 'Unsupported profile', supportedProfiles: Object.keys(LOAD_PROFILES) }));
+            return;
+          }
+
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify(getLoadState()));
+        } catch (error) {
+          res.writeHead(400, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ error: 'Invalid JSON body' }));
+        }
+      });
+      return;
+    }
+
+    res.writeHead(404, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ error: 'Not found' }));
+  });
+
+  server.listen(CONTROL_PORT, () => {
+    console.log(`[factory-producer] Control server listening on port ${CONTROL_PORT}`);
+  });
+
+  return server;
+}
+
 async function run() {
   const kafka = new Kafka({
     clientId: CLIENT_ID,
@@ -94,6 +203,7 @@ async function run() {
     console.log('[factory-producer] Schema Registry disabled - using plain JSON encoding');
   }
   const producer = kafka.producer();
+  const controlServer = startControlServer();
   console.log(`[factory-producer] Connecting to Kafka at ${BROKERS.join(', ')}...`);
   await producer.connect();
   console.log('[factory-producer] Connected. Starting event generation...');
@@ -102,6 +212,7 @@ async function run() {
 
   process.on('SIGTERM', async () => {
     console.log('[factory-producer] Shutting down...');
+    controlServer.close();
     await producer.disconnect();
     process.exit(0);
   });
@@ -132,11 +243,13 @@ async function run() {
     });
 
     eventCount++;
+    totalEventsSent++;
     if (eventCount % 10 === 0) {
       console.log(`[factory-producer] ${eventCount} events sent. Last: [${topic}] ${event.vin || event.partNumber || ''}`);
     }
 
-    const delay = 300 + Math.floor(Math.random() * 2200);
+    const profile = LOAD_PROFILES[currentLoadProfile];
+    const delay = profile.minDelayMs + Math.floor(Math.random() * (profile.maxDelayMs - profile.minDelayMs + 1));
     await new Promise((r) => setTimeout(r, delay));
   }
 }

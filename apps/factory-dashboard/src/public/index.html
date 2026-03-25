@@ -67,6 +67,28 @@
       flex-shrink: 0;
       overflow-x: auto;
     }
+    .demo-banner {
+      margin: 12px 24px 0;
+      padding: 12px 16px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      background: var(--surface);
+      color: var(--text);
+      font-weight: 700;
+      letter-spacing: 0.02em;
+    }
+    .demo-banner.heavy {
+      border-color: var(--red);
+      box-shadow: inset 0 0 0 1px rgba(230, 57, 70, 0.35);
+    }
+    .demo-banner.normal {
+      border-color: var(--green);
+      box-shadow: inset 0 0 0 1px rgba(6, 214, 160, 0.35);
+    }
+    .demo-banner.warning {
+      border-color: var(--yellow);
+      box-shadow: inset 0 0 0 1px rgba(255, 209, 102, 0.35);
+    }
     .stat-card {
       min-width: 140px;
       padding: 8px 14px;
@@ -200,6 +222,44 @@
       padding: 14px;
     }
     .sidebar-card h3 { font-size: 0.85rem; color: var(--text-muted); margin-bottom: 10px; letter-spacing: 1px; text-transform: uppercase; }
+    .control-buttons {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .control-button {
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 10px 12px;
+      color: var(--text);
+      background: var(--surface2);
+      text-align: left;
+      cursor: pointer;
+      transition: border-color 0.2s ease, transform 0.2s ease;
+    }
+    .control-button:hover {
+      transform: translateY(-1px);
+    }
+    .control-button.heavy {
+      border-color: var(--red);
+    }
+    .control-button.normal {
+      border-color: var(--green);
+    }
+    .control-button.active {
+      box-shadow: 0 0 0 1px currentColor inset;
+    }
+    .control-caption {
+      font-size: 0.72rem;
+      color: var(--text-muted);
+      display: block;
+      margin-top: 4px;
+    }
+    .control-state {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      line-height: 1.4;
+    }
     .topic-row { display: flex; justify-content: space-between; align-items: center; padding: 5px 0; border-bottom: 1px solid var(--border); font-size: 0.8rem; }
     .topic-row:last-child { border-bottom: none; }
     .topic-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
@@ -228,6 +288,8 @@
   </div>
 </header>
 
+<div class="demo-banner normal" id="demo-banner">Normal load mode active. Broker node pool target: 3 replicas.</div>
+
 <div class="stats-bar" id="stats-bar">
   <!-- filled by JS -->
 </div>
@@ -235,6 +297,20 @@
 <main>
   <div class="event-feed" id="event-feed"></div>
   <aside class="sidebar">
+    <div class="sidebar-card">
+      <h3>Load Demo</h3>
+      <div class="control-buttons">
+        <button class="control-button heavy" id="btn-heavy" type="button">
+          Kafka Heavy Load
+          <span class="control-caption">Increase producer throughput for the demo.</span>
+        </button>
+        <button class="control-button normal" id="btn-normal" type="button">
+          Load Is Lower
+          <span class="control-caption">Return producer throughput to normal.</span>
+        </button>
+        <div class="control-state" id="load-state">Producer load profile: checking…</div>
+      </div>
+    </div>
     <div class="sidebar-card">
       <h3>Topics</h3>
       <div id="topic-list"></div>
@@ -257,6 +333,10 @@
   const topicCounts = {};
   let totalCount = 0;
   let lastRateCount = 0;
+  const loadStateEl = document.getElementById('load-state');
+  const heavyBtn = document.getElementById('btn-heavy');
+  const normalBtn = document.getElementById('btn-normal');
+  const demoBannerEl = document.getElementById('demo-banner');
 
   // Initialise counters
   for (const t of Object.keys(TOPIC_META)) topicCounts[t] = 0;
@@ -346,6 +426,67 @@
   const totalEl = document.getElementById('total-count');
   const rateEl  = document.getElementById('rate-label');
 
+  function setActiveLoadProfile(profile) {
+    heavyBtn.classList.toggle('active', profile === 'heavy');
+    normalBtn.classList.toggle('active', profile === 'normal');
+  }
+
+  function renderDemoState(payload) {
+    if (payload.error) {
+      demoBannerEl.className = 'demo-banner warning';
+      demoBannerEl.textContent = payload.error;
+      loadStateEl.textContent = 'Producer load profile: unavailable';
+      setActiveLoadProfile('');
+      return;
+    }
+
+    demoBannerEl.className = `demo-banner ${payload.brokerError ? 'warning' : payload.bannerTone}`;
+    demoBannerEl.textContent = payload.bannerText;
+
+    const as = payload.autoScale;
+    const brokerReplicas = payload.broker?.replicas ?? as?.currentTarget ?? 'n/a';
+    const evtSec = (as?.eventsPerSec !== null && as?.eventsPerSec !== undefined)
+      ? `${as.eventsPerSec} evt/s` : null;
+    const cooldown = as?.inCooldown ? ' · cooldown' : '';
+    const scaleBounds = as ? ` (↑>${as.highWater} ↓<${as.lowWater})` : '';
+    const autoInfo = evtSec ? ` · ${evtSec}${cooldown}${scaleBounds}` : '';
+
+    loadStateEl.textContent = payload.brokerError
+      ? `Producer: ${payload.producer.label} · Broker scaling unavailable`
+      : `Producer: ${payload.producer.label} · Brokers: ${brokerReplicas}${autoInfo}`;
+
+    setActiveLoadProfile(payload.producer.profile);
+  }
+
+  async function refreshLoadState() {
+    try {
+      const response = await fetch('/api/load-state');
+      const payload = await response.json();
+      if (!response.ok) throw new Error(payload.error || 'Request failed');
+      renderDemoState(payload);
+    } catch (_error) {
+      renderDemoState({ error: 'Producer load profile: unavailable' });
+    }
+  }
+
+  async function setLoadProfile(profile) {
+    loadStateEl.textContent = 'Producer load profile: updating…';
+    try {
+      const response = await fetch('/api/load-profile', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ profile }),
+      });
+      const payload = await response.json();
+      if (!response.ok) throw new Error(payload.error || 'Request failed');
+      renderDemoState(payload);
+    } catch (_error) {
+      loadStateEl.textContent = 'Producer load profile: update failed';
+      demoBannerEl.className = 'demo-banner warning';
+      demoBannerEl.textContent = 'Load profile update failed.';
+    }
+  }
+
   function connect() {
     // Fetch WS port from /config then connect
     fetch('/config')
@@ -395,6 +536,11 @@
     lastRateCount = 0;
   }, 1000);
 
+  heavyBtn.addEventListener('click', () => setLoadProfile('heavy'));
+  normalBtn.addEventListener('click', () => setLoadProfile('normal'));
+
+  refreshLoadState();
+  setInterval(refreshLoadState, 5000);
   connect();
 </script>
 </body>
