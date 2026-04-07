@@ -6,13 +6,13 @@
   <title>Delivered Cars</title>
   <style>
     :root {
-      --bg-start: #f9faf7;
-      --bg-end: #edf6ef;
-      --ink: #18221c;
-      --card: #ffffffcc;
-      --accent: #17593b;
-      --line: #d5e4d8;
-      --muted: #476251;
+      --bg-start: #0b1115;
+      --bg-end: #131c25;
+      --ink: #e8f0f7;
+      --card: rgba(19, 28, 37, 0.86);
+      --accent: #2aa57d;
+      --line: #2b3a4a;
+      --muted: #9ab0c4;
     }
 
     * {
@@ -23,7 +23,7 @@
       margin: 0;
       font-family: "Avenir Next", "Segoe UI", sans-serif;
       color: var(--ink);
-      background: radial-gradient(circle at 5% 5%, #fff 0%, transparent 35%),
+      background: radial-gradient(circle at 5% 5%, rgba(42, 165, 125, 0.18) 0%, transparent 35%),
                   linear-gradient(160deg, var(--bg-start), var(--bg-end));
       min-height: 100vh;
     }
@@ -72,7 +72,7 @@
       border-radius: 10px;
       padding: 0.55rem 0.65rem;
       font-size: 0.95rem;
-      background: #fff;
+      background: #1a2530;
       color: var(--ink);
     }
 
@@ -87,7 +87,7 @@
       border: none;
       border-radius: 10px;
       background: var(--accent);
-      color: #fff;
+      color: #08150f;
       padding: 0.6rem 0.9rem;
       font-weight: 600;
       cursor: pointer;
@@ -96,8 +96,8 @@
     }
 
     .btn.ghost {
-      background: #f2f8f3;
-      color: #1f4632;
+      background: #1a2530;
+      color: #d7e4ef;
       border: 1px solid var(--line);
     }
 
@@ -118,7 +118,7 @@
       border: 1px solid var(--line);
       border-radius: 18px;
       backdrop-filter: blur(5px);
-      box-shadow: 0 15px 45px rgba(23, 89, 59, 0.08);
+      box-shadow: 0 15px 45px rgba(0, 0, 0, 0.35);
       overflow: auto;
     }
 
@@ -140,14 +140,14 @@
       font-size: 0.78rem;
       text-transform: uppercase;
       letter-spacing: 0.06em;
-      color: #335745;
-      background: #f2f8f3;
+      color: #8fb0cc;
+      background: #16202a;
       position: sticky;
       top: 0;
     }
 
     tr:hover td {
-      background: #f7fcf8;
+      background: #1a2733;
     }
 
     .empty {
@@ -166,9 +166,9 @@
 
     .page-link {
       text-decoration: none;
-      color: #194e35;
+      color: #cde4d9;
       border: 1px solid var(--line);
-      background: #fff;
+      background: #1a2530;
       border-radius: 10px;
       padding: 0.5rem 0.8rem;
       font-size: 0.9rem;
