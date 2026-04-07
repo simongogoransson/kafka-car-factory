@@ -1,19 +1,23 @@
-# Default values for schema-registry
+# Default values for apicurio-registry
 replicaCount: 1
 
 image:
-  repository: confluentinc/cp-schema-registry
-  tag: "7.8.7"
+  repository: quay.io/apicurio/apicurio-registry
+  tag: "3.2.1"
   pullPolicy: IfNotPresent
 
 kafka:
   bootstrapServers: "factory-kafka-kafka-bootstrap.kafka-car-factory.svc.cluster.local:9092"
-  topicReplicationFactor: 3
-  timeout: 30000
+  storageTopic: "apicurio-registry-storage"
+  storageTopicReplicationFactor: 3
+  groupId: "apicurio-registry"
+
+storage:
+  kind: "kafkasql"
 
 service:
   type: ClusterIP
-  port: 8081
+  port: 8080
 
 resources:
   requests:
@@ -33,14 +37,14 @@ readinessProbe:
   periodSeconds: 10
   failureThreshold: 5
 
-debug: true
+logLevel: "INFO"
 
 extraEnv:
-  - name: SCHEMA_REGISTRY_KAFKASTORE_GROUP_ID
-    value: "schema-registry-default"
+  - name: APICURIO_REST_DELETION_ENABLED
+    value: "true"
 
 # Init container to wait for Kafka
 waitForKafka:
   enabled: true
-  image: confluentinc/cp-kafka:7.8.7
+  image: quay.io/strimzi/kafka:0.51.0-kafka-4.1.0
 

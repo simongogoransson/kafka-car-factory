@@ -1,7 +1,0 @@
-apiVersion: v2
-name: schema-registry
-description: Confluent Schema Registry for Kafka
-type: application
-version: 1.0.0
-appVersion: "7.8.7"
-

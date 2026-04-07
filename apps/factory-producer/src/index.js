@@ -5,8 +5,8 @@ const { Kafka, logLevel } = require('kafkajs');
 const { generateEvent } = require('./events');
 
 const BROKERS          = (process.env.KAFKA_BROKERS || 'localhost:9092').split(',');
-const SCHEMA_REGISTRY_URL = process.env.SCHEMA_REGISTRY_URL || 'http://localhost:8081';
-const USE_SCHEMA_REGISTRY = process.env.USE_SCHEMA_REGISTRY === 'true';
+const APICURIO_REGISTRY_URL = process.env.APICURIO_REGISTRY_URL || 'http://localhost:8080';
+const USE_APICURIO_REGISTRY = process.env.USE_APICURIO_REGISTRY === 'true';
 const CLIENT_ID        = 'factory-producer';
 const CONTROL_PORT     = parseInt(process.env.CONTROL_PORT || '3002', 10);
 
@@ -18,14 +18,6 @@ const LOAD_PROFILES = {
 let currentLoadProfile = LOAD_PROFILES.heavy && process.env.LOAD_PROFILE === 'heavy' ? 'heavy' : 'normal';
 let totalEventsSent = 0;
 let loadProfileChanges = 0;
-
-// Only require Schema Registry if enabled
-let SchemaRegistry, SchemaType;
-if (USE_SCHEMA_REGISTRY) {
-  const schemaRegistryModule = require('@kafkajs/confluent-schema-registry');
-  SchemaRegistry = schemaRegistryModule.SchemaRegistry;
-  SchemaType = schemaRegistryModule.SchemaType;
-}
 
 const TOPICS = [
   'assembly-line-events',
@@ -72,8 +64,57 @@ const VEHICLE_COMPLETED_SCHEMA_ENVELOPE = {
   },
 };
 
+const VEHICLE_COMPLETED_AVRO_SCHEMA = {
+  type: 'record',
+  name: 'VehicleCompleted',
+  namespace: 'com.factory.events',
+  fields: [
+    { name: 'eventType', type: 'string' },
+    { name: 'vin', type: 'string' },
+    { name: 'model', type: 'string' },
+    { name: 'color', type: 'string' },
+    { name: 'productionTimeMin', type: 'int' },
+    { name: 'productionLine', type: 'string' },
+    { name: 'destination', type: 'string' },
+    { name: 'deliveryDate', type: 'string' },
+    { name: 'timestamp', type: 'string' },
+  ],
+};
+
 function wrapWithSchema(payload) {
   return { ...VEHICLE_COMPLETED_SCHEMA_ENVELOPE, payload };
+}
+
+async function registerApicurioArtifact() {
+  const artifactId = 'vehicle-completed-value';
+  const base = `${APICURIO_REGISTRY_URL}/apis/registry/v2`;
+  const latestUrl = `${base}/groups/default/artifacts/${artifactId}/versions/latest`;
+
+  const latestResponse = await fetch(latestUrl, { method: 'GET' });
+  if (latestResponse.ok) {
+    console.log(`[factory-producer] Apicurio artifact already exists: ${artifactId}`);
+    return;
+  }
+
+  if (latestResponse.status !== 404) {
+    throw new Error(`unexpected status from Apicurio latest artifact endpoint: ${latestResponse.status}`);
+  }
+
+  const createResponse = await fetch(`${base}/groups/default/artifacts`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-Registry-ArtifactId': artifactId,
+      'X-Registry-ArtifactType': 'AVRO',
+    },
+    body: JSON.stringify(VEHICLE_COMPLETED_AVRO_SCHEMA),
+  });
+
+  if (!createResponse.ok) {
+    throw new Error(`failed to create Apicurio artifact ${artifactId}: ${createResponse.status}`);
+  }
+
+  console.log(`[factory-producer] Registered Apicurio artifact: ${artifactId}`);
 }
 
 function getLoadState() {
@@ -182,25 +223,16 @@ async function run() {
     retry: { initialRetryTime: 3000, retries: 10 },
   });
 
-  let registry, schemaId;
-  if (USE_SCHEMA_REGISTRY) {
+  if (USE_APICURIO_REGISTRY) {
     try {
-      registry = new SchemaRegistry({ host: SCHEMA_REGISTRY_URL });
-      // Register schema once — returns existing id if already registered
-      const result = await registry.register(
-        { type: SchemaType.AVRO, schema: JSON.stringify(VEHICLE_COMPLETED_SCHEMA_ENVELOPE) },
-        { subject: 'vehicle-completed-value' }
-      );
-      schemaId = result.id;
-      console.log(`[factory-producer] vehicle-completed Avro schema registered (id: ${schemaId})`);
-      console.log(`[factory-producer] Schema Registry enabled at ${SCHEMA_REGISTRY_URL}`);
+      await registerApicurioArtifact();
+      console.log(`[factory-producer] Apicurio Registry enabled at ${APICURIO_REGISTRY_URL}`);
     } catch (err) {
-      console.warn(`[factory-producer] Schema Registry unavailable: ${err.message}`);
-      console.log('[factory-producer] Falling back to plain JSON encoding');
-      registry = null;
+      console.warn(`[factory-producer] Apicurio Registry unavailable: ${err.message}`);
+      console.log('[factory-producer] Continuing with JSON payloads');
     }
   } else {
-    console.log('[factory-producer] Schema Registry disabled - using plain JSON encoding');
+    console.log('[factory-producer] Apicurio Registry disabled - using plain JSON encoding');
   }
   const producer = kafka.producer();
   const controlServer = startControlServer();
@@ -222,10 +254,7 @@ async function run() {
     const event = generateEvent(topic);
 
     let value;
-    if (topic === 'vehicle-completed' && registry && schemaId) {
-      // Encode as Avro with schema id prefix (Confluent wire format)
-      value = await registry.encode(schemaId, event);
-    } else if (topic === 'vehicle-completed') {
+    if (topic === 'vehicle-completed') {
       // Wrap in Kafka Connect JSON schema envelope for JDBC sink connector
       value = Buffer.from(JSON.stringify(wrapWithSchema(event)));
     } else {

@@ -1,6 +1,6 @@
-# Schema Registry Helm Chart
+# Apicurio Registry Helm Chart
 
-This Helm chart deploys Confluent Schema Registry for Kafka.
+This Helm chart deploys native Apicurio Registry with KafkaSQL storage.
 
 ## Configuration
 
@@ -8,14 +8,16 @@ The following table lists the configurable parameters:
 
 | Parameter | Description | Default |
 |-----------|-------------|---------|
-| `replicaCount` | Number of Schema Registry replicas | `1` |
-| `image.repository` | Schema Registry image repository | `confluentinc/cp-schema-registry` |
-| `image.tag` | Schema Registry image tag | `7.8.7` |
+| `replicaCount` | Number of Apicurio Registry replicas | `1` |
+| `image.repository` | Registry image repository | `apicurio/apicurio-registry` |
+| `image.tag` | Registry image tag | `3.2.1` |
 | `kafka.bootstrapServers` | Kafka bootstrap servers | `factory-kafka-kafka-bootstrap.kafka-car-factory.svc.cluster.local:9092` |
-| `kafka.topicReplicationFactor` | Replication factor for _schemas topic | `3` |
+| `kafka.storageTopic` | Kafka topic used for registry storage | `apicurio-registry-storage` |
+| `kafka.storageTopicReplicationFactor` | Replication factor for the storage topic | `3` |
+| `storage.kind` | Registry storage backend | `kafkasql` |
 | `waitForKafka.enabled` | Enable init container to wait for Kafka | `true` |
 | `service.type` | Kubernetes service type | `ClusterIP` |
-| `service.port` | Service port | `8081` |
+| `service.port` | Service port | `8080` |
 | `resources.requests.memory` | Memory request | `256Mi` |
 | `resources.requests.cpu` | CPU request | `100m` |
 | `resources.limits.memory` | Memory limit | `512Mi` |
@@ -30,7 +32,7 @@ replicaCount: 2
 
 kafka:
   bootstrapServers: "my-kafka-cluster:9092"
-  topicReplicationFactor: 1
+  storageTopicReplicationFactor: 1
 
 resources:
   limits:
@@ -40,7 +42,7 @@ resources:
 ## Installation
 
 ```bash
-helm install schema-registry ./helm/schema-registry \
+helm install apicurio-registry ./helm/apicurio-registry \
   --namespace kafka-car-factory \
   --create-namespace
 ```
@@ -48,13 +50,13 @@ helm install schema-registry ./helm/schema-registry \
 ## Upgrade
 
 ```bash
-helm upgrade schema-registry ./helm/schema-registry \
+helm upgrade apicurio-registry ./helm/apicurio-registry \
   --namespace kafka-car-factory
 ```
 
 ## Uninstall
 
 ```bash
-helm uninstall schema-registry -n kafka-car-factory
+helm uninstall apicurio-registry -n kafka-car-factory
 ```
 

@@ -1,14 +1,14 @@
 {{/*
 Expand the name of the chart.
 */}}
-{{- define "schema-registry.name" -}}
+{{- define "apicurio-registry.name" -}}
 {{- default .Chart.Name .Values.nameOverride | trunc 63 | trimSuffix "-" }}
 {{- end }}
 
 {{/*
 Create a default fully qualified app name.
 */}}
-{{- define "schema-registry.fullname" -}}
+{{- define "apicurio-registry.fullname" -}}
 {{- if .Values.fullnameOverride }}
 {{- .Values.fullnameOverride | trunc 63 | trimSuffix "-" }}
 {{- else }}
@@ -24,16 +24,16 @@ Create a default fully qualified app name.
 {{/*
 Create chart name and version as used by the chart label.
 */}}
-{{- define "schema-registry.chart" -}}
+{{- define "apicurio-registry.chart" -}}
 {{- printf "%s-%s" .Chart.Name .Chart.Version | replace "+" "_" | trunc 63 | trimSuffix "-" }}
 {{- end }}
 
 {{/*
 Common labels
 */}}
-{{- define "schema-registry.labels" -}}
-helm.sh/chart: {{ include "schema-registry.chart" . }}
-{{ include "schema-registry.selectorLabels" . }}
+{{- define "apicurio-registry.labels" -}}
+helm.sh/chart: {{ include "apicurio-registry.chart" . }}
+{{ include "apicurio-registry.selectorLabels" . }}
 {{- if .Chart.AppVersion }}
 app.kubernetes.io/version: {{ .Chart.AppVersion | quote }}
 {{- end }}
@@ -44,8 +44,8 @@ app.kubernetes.io/part-of: kafka-factory-demo
 {{/*
 Selector labels
 */}}
-{{- define "schema-registry.selectorLabels" -}}
-app.kubernetes.io/name: {{ include "schema-registry.name" . }}
+{{- define "apicurio-registry.selectorLabels" -}}
+app.kubernetes.io/name: {{ include "apicurio-registry.name" . }}
 app.kubernetes.io/instance: {{ .Release.Name }}
 {{- end }}
 

@@ -1,0 +1,7 @@
+apiVersion: v2
+name: apicurio-registry
+description: Apicurio Registry for Kafka
+type: application
+version: 1.0.0
+appVersion: "3.2.1"
+

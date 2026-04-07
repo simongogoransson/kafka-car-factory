@@ -34,6 +34,7 @@ manifests:
     - k8s/kafka/kafka-nodepool-brokers.yaml
     - k8s/kafka/kafka-cluster.yaml
     - k8s/kafka/kafka-topics.yaml
+    - k8s/kafka/kafka-topic-apicurio-registry-storage.yaml
     - k8s/kafka/kafka-connect-topics.yaml
     - k8s/postgres/postgres-secret.yaml
     - k8s/postgres/postgres.yaml
@@ -51,14 +52,13 @@ manifests:
     - k8s/factory-app/service-dashboard.yaml
     - k8s/factory-app/deployment-delivered-cars.yaml
     - k8s/factory-app/service-delivered-cars.yaml
-  # Schema Registry - commented out for now
-  # helm:
-  #   releases:
-  #     - name: schema-registry
-  #       chartPath: helm/schema-registry
-  #       namespace: kafka-car-factory
-  #       createNamespace: false
-  #       wait: true
+  helm:
+    releases:
+      - name: apicurio-registry
+        chartPath: helm/apicurio-registry
+        namespace: kafka-car-factory
+        createNamespace: false
+        wait: true
 
 deploy:
   kubectl:
@@ -79,7 +79,7 @@ portForward:
     resourceName: kafka-ui
     namespace: kafka-car-factory
     port: 8080
-    localPort: 8080
+    localPort: 8081
   - resourceType: Service
     resourceName: prometheus
     namespace: kafka-car-factory
@@ -100,9 +100,8 @@ portForward:
     namespace: kafka-car-factory
     port: 8085
     localPort: 8085
-  # Schema Registry - commented out
-  # - resourceType: Service
-  #   resourceName: schema-registry
-  #   namespace: kafka-car-factory
-  #   port: 8081
-  #   localPort: 8081
+  - resourceType: Service
+    resourceName: apicurio-registry
+    namespace: kafka-car-factory
+    port: 8080
+    localPort: 8080

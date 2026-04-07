@@ -4,7 +4,7 @@ A Kubernetes-based Kafka demo with an **automotive car factory theme**, using:
 
 - **[Strimzi](https://strimzi.io/)** operator — Kafka on Kubernetes (installed via Helm)
 - **KRaft mode** — 3 controllers + 3 brokers (no Zookeeper)
-- **[Schema Registry](https://docs.confluent.io/platform/current/schema-registry/)** — Avro schema management (Helm chart)
+- **[Apicurio Registry](https://www.apicur.io/registry/)** — schema governance and artifact storage (Helm chart)
 - **[Kafka Connect](https://kafka.apache.org/documentation/#connect)** — sink `vehicle-completed` events into PostgreSQL
 - **PostgreSQL** — analytics table `vehicle_completed_events`
 - **[Skaffold](https://skaffold.dev/)** — dev/deploy workflow with Helm support
@@ -121,10 +121,23 @@ Skaffold automatically uses the Podman socket (`DOCKER_HOST`) to build container
 |-----|-----|
 | 🏭 Factory Dashboard | http://localhost:3000 |
 | 🚚 Delivered Cars UI | http://localhost:8085 |
-| 📊 Kafka UI | http://localhost:8080 |
+| 🧩 Apicurio Registry | http://localhost:8080 |
+| 📊 Kafka UI | http://localhost:8081 |
 | 📈 Prometheus | http://localhost:9090 |
 
 The dashboard includes demo controls to switch between normal and heavy producer load. In heavy mode, it also requests a broker node pool scale-up via the Strimzi KafkaNodePool resource.
+
+### 5. Verify Apicurio Artifact Registration
+
+After `skaffold dev --port-forward` and once the producer is running, verify that Apicurio contains the expected artifact:
+
+```bash
+# Registry system info
+curl -s http://localhost:8080/apis/registry/v2/system/info
+
+# Latest artifact content registered by factory-producer
+curl -s http://localhost:8080/apis/registry/v2/groups/default/artifacts/vehicle-completed-value/versions/latest
+```
 
 ---
 

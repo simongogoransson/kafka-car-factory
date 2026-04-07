@@ -1,74 +1,72 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ include "schema-registry.fullname" . }}
+  name: {{ include "apicurio-registry.fullname" . }}
   labels:
-    {{- include "schema-registry.labels" . | nindent 4 }}
+    {{- include "apicurio-registry.labels" . | nindent 4 }}
 spec:
   replicas: {{ .Values.replicaCount }}
   selector:
     matchLabels:
-      {{- include "schema-registry.selectorLabels" . | nindent 6 }}
+      {{- include "apicurio-registry.selectorLabels" . | nindent 6 }}
   template:
     metadata:
       labels:
-        {{- include "schema-registry.selectorLabels" . | nindent 8 }}
+        {{- include "apicurio-registry.selectorLabels" . | nindent 8 }}
     spec:
 {{- if .Values.waitForKafka.enabled }}
       initContainers:
         - name: wait-for-kafka
           image: {{ .Values.waitForKafka.image }}
+          env:
+            - name: BOOTSTRAP_SERVERS
+              value: {{ .Values.kafka.bootstrapServers | quote }}
           command:
             - bash
             - -c
             - |
               echo "Waiting for Kafka to be ready..."
-              until kafka-broker-api-versions --bootstrap-server {{ .Values.kafka.bootstrapServers }} 2>/dev/null; do
+              server="${BOOTSTRAP_SERVERS%%,*}"
+              host="${server%%:*}"
+              port="${server##*:}"
+              until (echo > "/dev/tcp/${host}/${port}") >/dev/null 2>&1; do
                 echo "Kafka is not ready yet. Waiting..."
                 sleep 10
               done
-              echo "Kafka is ready!"
+              echo "Kafka bootstrap port is reachable at ${host}:${port}."
 {{- end }}
       containers:
-        - name: schema-registry
+        - name: apicurio-registry
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           ports:
             - name: http
-              containerPort: 8081
+              containerPort: {{ .Values.service.port }}
               protocol: TCP
           env:
-            - name: SCHEMA_REGISTRY_HOST_NAME
-              value: {{ include "schema-registry.fullname" . }}
-            - name: SCHEMA_REGISTRY_LISTENERS
-              value: "http://0.0.0.0:8081"
-            - name: SCHEMA_REGISTRY_KAFKASTORE_BOOTSTRAP_SERVERS
-              value: "PLAINTEXT://{{ .Values.kafka.bootstrapServers }}"
-            - name: SCHEMA_REGISTRY_KAFKASTORE_SECURITY_PROTOCOL
-              value: "PLAINTEXT"
-            - name: SCHEMA_REGISTRY_KAFKASTORE_TOPIC
-              value: "_schemas"
-            - name: SCHEMA_REGISTRY_KAFKASTORE_TOPIC_REPLICATION_FACTOR
-              value: {{ .Values.kafka.topicReplicationFactor | quote }}
-            - name: SCHEMA_REGISTRY_KAFKASTORE_TIMEOUT_MS
-              value: {{ .Values.kafka.timeout | quote }}
-            - name: SCHEMA_REGISTRY_DEBUG
-              value: {{ .Values.debug | quote }}
-            - name: KAFKA_HEAP_OPTS
-              value: "-Xms256M -Xmx256M"
+            - name: QUARKUS_HTTP_PORT
+              value: {{ .Values.service.port | quote }}
+            - name: QUARKUS_LOG_LEVEL
+              value: {{ .Values.logLevel | quote }}
+            - name: APICURIO_STORAGE_KIND
+              value: {{ .Values.storage.kind | quote }}
+            - name: APICURIO_KAFKASQL_BOOTSTRAP_SERVERS
+              value: {{ .Values.kafka.bootstrapServers | quote }}
+            - name: APICURIO_KAFKASQL_TOPIC
+              value: {{ .Values.kafka.storageTopic | quote }}
+            - name: APICURIO_KAFKASQL_GROUP_ID
+              value: {{ .Values.kafka.groupId | quote }}
 {{- if .Values.extraEnv }}
 {{- toYaml .Values.extraEnv | nindent 12 }}
 {{- end }}
           livenessProbe:
-            httpGet:
-              path: /
+            tcpSocket:
               port: http
             initialDelaySeconds: {{ .Values.livenessProbe.initialDelaySeconds }}
             periodSeconds: {{ .Values.livenessProbe.periodSeconds }}
             failureThreshold: {{ .Values.livenessProbe.failureThreshold }}
           readinessProbe:
-            httpGet:
-              path: /
+            tcpSocket:
               port: http
             initialDelaySeconds: {{ .Values.readinessProbe.initialDelaySeconds }}
             periodSeconds: {{ .Values.readinessProbe.periodSeconds }}
