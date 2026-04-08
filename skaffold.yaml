@@ -38,8 +38,11 @@ manifests:
     - k8s/kafka/kafka-connect-topics.yaml
     - k8s/postgres/postgres-secret.yaml
     - k8s/postgres/postgres.yaml
+    - k8s/neo4j/neo4j-secret.yaml
+    - k8s/neo4j/neo4j.yaml
     - k8s/kafka-connect/kafka-connect.yaml
     - k8s/kafka-connect/kafka-connector-vehicle-completed-postgres.yaml
+    - k8s/kafka-connect/kafka-connector-quality-control-neo4j.yaml
     - k8s/monitoring/prometheus-rbac.yaml
     - k8s/monitoring/prometheus-config.yaml
     - k8s/monitoring/prometheus.yaml
@@ -95,6 +98,16 @@ portForward:
     namespace: kafka-car-factory
     port: 5432
     localPort: 5433
+  - resourceType: Service
+    resourceName: neo4j
+    namespace: kafka-car-factory
+    port: 7474
+    localPort: 7474
+  - resourceType: Service
+    resourceName: neo4j
+    namespace: kafka-car-factory
+    port: 7687
+    localPort: 7687
   - resourceType: Service
     resourceName: factory-delivered-cars
     namespace: kafka-car-factory

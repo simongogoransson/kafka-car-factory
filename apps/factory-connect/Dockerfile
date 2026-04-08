@@ -20,8 +20,19 @@ FROM quay.io/strimzi/kafka:0.51.0-kafka-4.1.0
 
 USER root
 
+ARG NEO4J_KAFKA_CONNECTOR_VERSION=5.3.0
+
 # Copy JDBC sink plugin from Debezium image into Strimzi Connect plugin path.
 COPY --from=debezium /kafka/connect/debezium-connector-jdbc /opt/kafka/plugins/debezium-connector-jdbc
+
+# Install the Neo4j Kafka connector distribution into the Strimzi plugin path.
+RUN mkdir -p /opt/kafka/plugins \
+    && curl -fL -o /tmp/neo4j-kafka-connect.zip \
+       "https://github.com/neo4j/neo4j-kafka-connector/releases/download/${NEO4J_KAFKA_CONNECTOR_VERSION}/neo4j-kafka-connect-${NEO4J_KAFKA_CONNECTOR_VERSION}.zip" \
+    && cd /opt/kafka/plugins \
+    && unzip -q /tmp/neo4j-kafka-connect.zip \
+    && mv "/opt/kafka/plugins/neo4j-kafka-connect-${NEO4J_KAFKA_CONNECTOR_VERSION}" /opt/kafka/plugins/neo4j-kafka-connect \
+    && rm /tmp/neo4j-kafka-connect.zip
 
 # Download Apicurio Registry Avro converter plugin (matches registry version 3.2.1).
 RUN mkdir -p /opt/kafka/plugins/apicurio-registry-connect-converter \
@@ -31,6 +42,7 @@ RUN mkdir -p /opt/kafka/plugins/apicurio-registry-connect-converter \
     && rm /tmp/apicurio-converter.tar.gz
 
 RUN chown -R 1001:0 /opt/kafka/plugins/debezium-connector-jdbc \
+    && chown -R 1001:0 /opt/kafka/plugins/neo4j-kafka-connect \
     && chown -R 1001:0 /opt/kafka/plugins/apicurio-registry-connect-converter
 
 USER 1001

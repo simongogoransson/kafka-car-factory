@@ -7,6 +7,7 @@ A Kubernetes-based Kafka demo with an **automotive car factory theme**, using:
 - **[Apicurio Registry](https://www.apicur.io/registry/)** — schema governance and artifact storage (Helm chart)
 - **[Kafka Connect](https://kafka.apache.org/documentation/#connect)** — sink `vehicle-completed` events into PostgreSQL
 - **PostgreSQL** — analytics table `vehicle_completed_events`
+- **[Neo4j](https://neo4j.com/)** — graph database for quality-control relationships
 - **[Skaffold](https://skaffold.dev/)** — dev/deploy workflow with Helm support
 - **[Kafka UI](https://github.com/provectus/kafka-ui)** — topic/consumer browser
 - **[Prometheus](https://prometheus.io/)** — metrics from Strimzi JMX exporter
@@ -121,6 +122,7 @@ Skaffold automatically uses the Podman socket (`DOCKER_HOST`) to build container
 |-----|-----|
 | 🏭 Factory Dashboard | http://localhost:3000 |
 | 🚚 Delivered Cars UI | http://localhost:8085 |
+| 🕸 Neo4j Browser | http://localhost:7474 |
 | 🧩 Apicurio Registry | http://localhost:8080 |
 | 📊 Kafka UI | http://localhost:8081 |
 | 📈 Prometheus | http://localhost:9090 |
@@ -145,11 +147,14 @@ curl -s http://localhost:8080/apis/registry/v2/groups/default/artifacts/vehicle-
 
 This repo now includes a Kafka Connect sink that writes the `vehicle-completed` topic into PostgreSQL table `vehicle_completed_events`.
 
+It also includes a Neo4j sink proof of concept for `quality-control-results`, backed by an in-cluster Neo4j server with persistent storage.
+
 After `skaffold dev --port-forward`, verify it with:
 
 ```bash
 kubectl get kafkaconnector vehicle-completed-postgres-sink -n kafka-car-factory
-kubectl get pods -n kafka-car-factory | grep -E 'factory-connect|postgres'
+kubectl get kafkaconnector quality-control-neo4j-sink -n kafka-car-factory
+kubectl get pods -n kafka-car-factory | grep -E 'factory-connect|postgres|neo4j'
 ```
 
 Query PostgreSQL (port-forwarded to `localhost:5433` by Skaffold):
@@ -157,6 +162,21 @@ Query PostgreSQL (port-forwarded to `localhost:5433` by Skaffold):
 ```bash
 psql "postgresql://factory:factory@localhost:5433/factory_analytics" \
   -c "SELECT vin, model, production_line, event_ts FROM vehicle_completed_events ORDER BY id DESC LIMIT 10;"
+```
+
+Open Neo4j Browser at `http://localhost:7474` and sign in with `neo4j` / `factory-graph`, then try:
+
+```cypher
+MATCH (v:Vehicle)-[r:HAS_CHECK]->(c:Check)
+RETURN v.vin, v.model, c.name, r.result, r.timestamp
+ORDER BY r.timestamp DESC
+LIMIT 20;
+```
+
+```cypher
+MATCH (:Vehicle)-[:INSPECTED_BY]->(i:Inspector)
+RETURN i.id, count(*) AS inspections
+ORDER BY inspections DESC;
 ```
 
 ---
@@ -181,6 +201,10 @@ kafka-skaffold/
 │   ├── kafka-connect/
 │   │   ├── kafka-connect.yaml      # KafkaConnect cluster
 │   │   └── kafka-connector-vehicle-completed-postgres.yaml
+│   │   └── kafka-connector-quality-control-neo4j.yaml
+│   ├── neo4j/
+│   │   ├── neo4j-secret.yaml       # Neo4j credentials for local dev
+│   │   └── neo4j.yaml              # Neo4j PVC + Deployment + Service
 │   ├── postgres/
 │   │   └── postgres.yaml           # Postgres + init SQL table
 │   ├── monitoring/

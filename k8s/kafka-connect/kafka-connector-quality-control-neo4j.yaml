@@ -1,0 +1,48 @@
+apiVersion: kafka.strimzi.io/v1
+kind: KafkaConnector
+metadata:
+  name: quality-control-neo4j-sink
+  namespace: kafka-car-factory
+  labels:
+    strimzi.io/cluster: factory-connect
+    app.kubernetes.io/part-of: kafka-car-factory-demo
+spec:
+  class: org.neo4j.connectors.kafka.sink.Neo4jConnector
+  tasksMax: 1
+  config:
+    topics: quality-control-results
+    consumer.override.auto.offset.reset: earliest
+    key.converter: org.apache.kafka.connect.storage.StringConverter
+    value.converter: org.apache.kafka.connect.json.JsonConverter
+    value.converter.schemas.enable: false
+    errors.tolerance: all
+    neo4j.uri: bolt://neo4j.kafka-car-factory.svc.cluster.local:7687
+    neo4j.authentication.type: BASIC
+    neo4j.authentication.basic.username: neo4j
+    neo4j.authentication.basic.password: factory-graph
+    neo4j.batch-size: 200
+    neo4j.cypher.bind-value-as: __value
+    neo4j.cypher.bind-value-as-event: false
+    neo4j.cypher.topic.quality-control-results: >-
+      MERGE (vehicle:Vehicle {vin: __value.vin})
+      SET vehicle.model = __value.model,
+          vehicle.lastQcResult = __value.overallResult,
+          vehicle.lastQcTs = __value.timestamp
+      MERGE (inspector:Inspector {id: __value.inspector})
+      MERGE (vehicle)-[inspection:INSPECTED_BY]->(inspector)
+      SET inspection.station = __value.station,
+          inspection.result = __value.overallResult,
+          inspection.timestamp = __value.timestamp
+      FOREACH (_ IN CASE WHEN __value.defectCode IS NULL THEN [] ELSE [1] END |
+        MERGE (defect:Defect {code: __value.defectCode})
+        MERGE (vehicle)-[hasDefect:HAS_DEFECT]->(defect)
+        SET hasDefect.timestamp = __value.timestamp,
+            hasDefect.result = __value.overallResult
+      )
+      FOREACH (checkItem IN CASE WHEN __value.checks IS NULL THEN [] ELSE __value.checks END |
+        MERGE (check:Check {name: checkItem.check})
+        MERGE (vehicle)-[hasCheck:HAS_CHECK]->(check)
+        SET hasCheck.result = checkItem.result,
+            hasCheck.inspector = __value.inspector,
+            hasCheck.timestamp = __value.timestamp
+      )
