@@ -2,6 +2,7 @@
 
 const http = require('http');
 const { Kafka, logLevel } = require('kafkajs');
+const avsc = require('avsc');
 const { generateEvent } = require('./events');
 
 const BROKERS          = (process.env.KAFKA_BROKERS || 'localhost:9092').split(',');
@@ -9,6 +10,7 @@ const APICURIO_REGISTRY_URL = process.env.APICURIO_REGISTRY_URL || 'http://local
 const USE_APICURIO_REGISTRY = process.env.USE_APICURIO_REGISTRY === 'true';
 const CLIENT_ID        = 'factory-producer';
 const CONTROL_PORT     = parseInt(process.env.CONTROL_PORT || '3002', 10);
+const APICURIO_RETRY_MS = parseInt(process.env.APICURIO_RETRY_MS || '15000', 10);
 
 const LOAD_PROFILES = {
   normal: { minDelayMs: 300, maxDelayMs: 2500, label: 'Normal load' },
@@ -81,6 +83,21 @@ const VEHICLE_COMPLETED_AVRO_SCHEMA = {
   ],
 };
 
+const vehicleCompletedAvroType = avsc.Type.forSchema(VEHICLE_COMPLETED_AVRO_SCHEMA);
+let avroGlobalId = null;
+let apicurioRegistrationInFlight = false;
+let lastApicurioErrorLogTs = 0;
+
+// Apicurio wire format: magic byte (0x00) + 8-byte big-endian globalId + Avro bytes
+function serializeAvro(payload, globalId) {
+  const avroBytes = vehicleCompletedAvroType.toBuffer(payload);
+  const header = Buffer.alloc(9);
+  header[0] = 0x00;
+  header.writeUInt32BE(0, 1);         // high 4 bytes of 8-byte globalId (always 0)
+  header.writeUInt32BE(globalId, 5);  // low 4 bytes of 8-byte globalId
+  return Buffer.concat([header, avroBytes]);
+}
+
 function wrapWithSchema(payload) {
   return { ...VEHICLE_COMPLETED_SCHEMA_ENVELOPE, payload };
 }
@@ -88,16 +105,16 @@ function wrapWithSchema(payload) {
 async function registerApicurioArtifact() {
   const artifactId = 'vehicle-completed-value';
   const base = `${APICURIO_REGISTRY_URL}/apis/registry/v2`;
-  const latestUrl = `${base}/groups/default/artifacts/${artifactId}/versions/latest`;
 
-  const latestResponse = await fetch(latestUrl, { method: 'GET' });
-  if (latestResponse.ok) {
-    console.log(`[factory-producer] Apicurio artifact already exists: ${artifactId}`);
-    return;
+  const metaResponse = await fetch(`${base}/groups/default/artifacts/${artifactId}/meta`, { method: 'GET' });
+  if (metaResponse.ok) {
+    const meta = await metaResponse.json();
+    console.log(`[factory-producer] Apicurio artifact already exists: ${artifactId} (globalId=${meta.globalId})`);
+    return meta.globalId;
   }
 
-  if (latestResponse.status !== 404) {
-    throw new Error(`unexpected status from Apicurio latest artifact endpoint: ${latestResponse.status}`);
+  if (metaResponse.status !== 404) {
+    throw new Error(`unexpected status from Apicurio meta endpoint: ${metaResponse.status}`);
   }
 
   const createResponse = await fetch(`${base}/groups/default/artifacts`, {
@@ -114,7 +131,31 @@ async function registerApicurioArtifact() {
     throw new Error(`failed to create Apicurio artifact ${artifactId}: ${createResponse.status}`);
   }
 
-  console.log(`[factory-producer] Registered Apicurio artifact: ${artifactId}`);
+  const created = await createResponse.json();
+  console.log(`[factory-producer] Registered Apicurio artifact: ${artifactId} (globalId=${created.globalId})`);
+  return created.globalId;
+}
+
+async function ensureApicurioRegistration() {
+  if (!USE_APICURIO_REGISTRY || avroGlobalId !== null || apicurioRegistrationInFlight) {
+    return;
+  }
+
+  apicurioRegistrationInFlight = true;
+  try {
+    avroGlobalId = await registerApicurioArtifact();
+    console.log(`[factory-producer] Apicurio Registry enabled at ${APICURIO_REGISTRY_URL} - Avro serialization active`);
+  } catch (err) {
+    // Throttle repeated startup-race warnings while registry is still coming up.
+    const now = Date.now();
+    if (now - lastApicurioErrorLogTs >= 30000) {
+      console.warn(`[factory-producer] Apicurio Registry unavailable: ${err.message}`);
+      console.log('[factory-producer] Continuing with JSON payloads until registry becomes available');
+      lastApicurioErrorLogTs = now;
+    }
+  } finally {
+    apicurioRegistrationInFlight = false;
+  }
 }
 
 function getLoadState() {
@@ -224,16 +265,17 @@ async function run() {
   });
 
   if (USE_APICURIO_REGISTRY) {
-    try {
-      await registerApicurioArtifact();
-      console.log(`[factory-producer] Apicurio Registry enabled at ${APICURIO_REGISTRY_URL}`);
-    } catch (err) {
-      console.warn(`[factory-producer] Apicurio Registry unavailable: ${err.message}`);
-      console.log('[factory-producer] Continuing with JSON payloads');
-    }
+    await ensureApicurioRegistration();
   } else {
     console.log('[factory-producer] Apicurio Registry disabled - using plain JSON encoding');
   }
+
+  const apicurioRetryTimer = USE_APICURIO_REGISTRY
+    ? setInterval(() => {
+      ensureApicurioRegistration().catch(() => {});
+    }, APICURIO_RETRY_MS)
+    : null;
+
   const producer = kafka.producer();
   const controlServer = startControlServer();
   console.log(`[factory-producer] Connecting to Kafka at ${BROKERS.join(', ')}...`);
@@ -244,6 +286,9 @@ async function run() {
 
   process.on('SIGTERM', async () => {
     console.log('[factory-producer] Shutting down...');
+    if (apicurioRetryTimer) {
+      clearInterval(apicurioRetryTimer);
+    }
     controlServer.close();
     await producer.disconnect();
     process.exit(0);
@@ -255,8 +300,11 @@ async function run() {
 
     let value;
     if (topic === 'vehicle-completed') {
-      // Wrap in Kafka Connect JSON schema envelope for JDBC sink connector
-      value = Buffer.from(JSON.stringify(wrapWithSchema(event)));
+      // Avro-serialized with Apicurio wire format when registry is available;
+      // fall back to Kafka Connect JSON schema envelope otherwise.
+      value = avroGlobalId !== null
+        ? serializeAvro(event, avroGlobalId)
+        : Buffer.from(JSON.stringify(wrapWithSchema(event)));
     } else {
       // Plain JSON encoding for all other topics
       value = Buffer.from(JSON.stringify(event));

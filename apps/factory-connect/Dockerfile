@@ -23,6 +23,14 @@ USER root
 # Copy JDBC sink plugin from Debezium image into Strimzi Connect plugin path.
 COPY --from=debezium /kafka/connect/debezium-connector-jdbc /opt/kafka/plugins/debezium-connector-jdbc
 
-RUN chown -R 1001:0 /opt/kafka/plugins/debezium-connector-jdbc
+# Download Apicurio Registry Avro converter plugin (matches registry version 3.2.1).
+RUN mkdir -p /opt/kafka/plugins/apicurio-registry-connect-converter \
+    && curl -fL -o /tmp/apicurio-converter.tar.gz \
+       "https://repo1.maven.org/maven2/io/apicurio/apicurio-registry-distro-connect-converter/3.2.1/apicurio-registry-distro-connect-converter-3.2.1.tar.gz" \
+    && tar -xzf /tmp/apicurio-converter.tar.gz -C /opt/kafka/plugins/apicurio-registry-connect-converter \
+    && rm /tmp/apicurio-converter.tar.gz
+
+RUN chown -R 1001:0 /opt/kafka/plugins/debezium-connector-jdbc \
+    && chown -R 1001:0 /opt/kafka/plugins/apicurio-registry-connect-converter
 
 USER 1001

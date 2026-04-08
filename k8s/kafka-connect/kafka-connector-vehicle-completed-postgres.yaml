@@ -19,10 +19,14 @@ spec:
     insert.mode: insert
     delete.enabled: false
     key.converter: org.apache.kafka.connect.storage.StringConverter
-    value.converter: org.apache.kafka.connect.json.JsonConverter
-    value.converter.schemas.enable: "true"
-    # Start from latest to skip old schemaless messages already in this topic.
-    consumer.override.auto.offset.reset: latest
+    value.converter: io.apicurio.registry.utils.converter.AvroConverter
+    value.converter.apicurio.registry.url: http://apicurio-registry.kafka-car-factory.svc.cluster.local:8080
+    value.converter.apicurio.registry.use-id: globalId
+    value.converter.apicurio.registry.id-handler: io.apicurio.registry.serde.Legacy8ByteIdHandler
+    # Skip messages that cannot be deserialized (e.g. old pre-Avro JSON messages in the topic).
+    errors.tolerance: all
+    # Read from earliest; non-Avro legacy records are skipped via errors.tolerance=all.
+    consumer.override.auto.offset.reset: earliest
     transforms: RenameFields,KeepFields,ConvertDeliveryDate,ConvertEventTs
     transforms.RenameFields.type: org.apache.kafka.connect.transforms.ReplaceField$Value
     transforms.RenameFields.renames: eventType:event_type,productionTimeMin:production_time_min,productionLine:production_line,deliveryDate:delivery_date,timestamp:event_ts

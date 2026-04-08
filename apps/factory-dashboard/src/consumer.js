@@ -2,6 +2,7 @@
 
 const { Kafka, logLevel } = require('kafkajs');
 const WebSocket = require('ws');
+const avsc = require('avsc');
 
 const BROKERS = (process.env.KAFKA_BROKERS || 'localhost:9092').split(',');
 const APICURIO_REGISTRY_URL = process.env.APICURIO_REGISTRY_URL || 'http://localhost:8080';
@@ -17,6 +18,24 @@ const TOPICS = [
   'engine-production',
   'paint-shop-events',
 ];
+
+// ─── Avro deserialization ─────────────────────────────────────────────────────
+// Apicurio wire format: 0x00 (magic) + 8-byte big-endian globalId + Avro bytes
+
+const schemaCache = new Map();
+
+async function deserializeAvro(buffer) {
+  const globalId = buffer.readUInt32BE(5); // low 4 bytes of 8-byte globalId
+  let type = schemaCache.get(globalId);
+  if (!type) {
+    const url = `${APICURIO_REGISTRY_URL}/apis/registry/v2/ids/globalIds/${globalId}`;
+    const res = await fetch(url, { headers: { Accept: 'application/json' } });
+    if (!res.ok) throw new Error(`Failed to fetch schema for globalId ${globalId}: ${res.status}`);
+    type = avsc.Type.forSchema(await res.json());
+    schemaCache.set(globalId, type);
+  }
+  return type.fromBuffer(buffer.subarray(9));
+}
 
 // ─── WebSocket server ─────────────────────────────────────────────────────────
 
@@ -67,11 +86,15 @@ async function startConsumer() {
     eachMessage: async ({ topic, partition, message }) => {
       let payload;
       try {
-        payload = JSON.parse(message.value.toString());
-
-        // Unwrap Connect JSON envelopes if present
-        if (payload && typeof payload === 'object' && payload.payload && payload.schema) {
-          payload = payload.payload;
+        const raw = message.value;
+        if (USE_APICURIO_REGISTRY && raw && raw[0] === 0x00) {
+          payload = await deserializeAvro(raw);
+        } else {
+          payload = JSON.parse(raw.toString());
+          // Unwrap Connect JSON envelopes if present
+          if (payload && typeof payload === 'object' && payload.payload && payload.schema) {
+            payload = payload.payload;
+          }
         }
       } catch {
         payload = { raw: message.value?.toString() || '' };

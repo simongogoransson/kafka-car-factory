@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Delivered Cars</title>
+  <style>
+    :root {
+      --bg-start: #0b1115;
+      --bg-end: #131c25;
+      --ink: #e8f0f7;
+      --card: rgba(19, 28, 37, 0.86);
+      --accent: #2aa57d;
+      --line: #2b3a4a;
+      --muted: #9ab0c4;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: "Avenir Next", "Segoe UI", sans-serif;
+      color: var(--ink);
+      background: radial-gradient(circle at 5% 5%, rgba(42, 165, 125, 0.18) 0%, transparent 35%),
+                  linear-gradient(160deg, var(--bg-start), var(--bg-end));
+      min-height: 100vh;
+    }
+
+    .wrap {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 2.2rem 1rem 2rem;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(1.5rem, 2.6vw, 2.2rem);
+      letter-spacing: 0.02em;
+    }
+
+    p.subtitle {
+      margin-top: 0.4rem;
+      opacity: 0.8;
+    }
+
+    .toolbar {
+      margin-top: 1rem;
+      display: grid;
+      gap: 0.8rem;
+      grid-template-columns: repeat(5, minmax(140px, 1fr));
+      align-items: end;
+    }
+
+    .field {
+      display: flex;
+      flex-direction: column;
+      gap: 0.35rem;
+    }
+
+    .field label {
+      font-size: 0.78rem;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    .field input,
+    .field select {
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 0.55rem 0.65rem;
+      font-size: 0.95rem;
+      background: #1a2530;
+      color: var(--ink);
+    }
+
+    .actions {
+      display: flex;
+      gap: 0.6rem;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .btn {
+      border: none;
+      border-radius: 10px;
+      background: var(--accent);
+      color: #08150f;
+      padding: 0.6rem 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+      text-decoration: none;
+      display: inline-block;
+    }
+
+    .btn.ghost {
+      background: #1a2530;
+      color: #d7e4ef;
+      border: 1px solid var(--line);
+    }
+
+    .stats {
+      margin-top: 0.8rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 0.8rem;
+      flex-wrap: wrap;
+      color: var(--muted);
+      font-size: 0.92rem;
+    }
+
+    .card {
+      margin-top: 1.2rem;
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      backdrop-filter: blur(5px);
+      box-shadow: 0 15px 45px rgba(0, 0, 0, 0.35);
+      overflow: auto;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 800px;
+    }
+
+    th, td {
+      text-align: left;
+      padding: 0.85rem 1rem;
+      border-bottom: 1px solid var(--line);
+      white-space: nowrap;
+      font-size: 0.94rem;
+    }
+
+    th {
+      font-size: 0.78rem;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: #8fb0cc;
+      background: #16202a;
+      position: sticky;
+      top: 0;
+    }
+
+    tr:hover td {
+      background: #1a2733;
+    }
+
+    .empty {
+      padding: 2rem 1rem;
+      text-align: center;
+      opacity: 0.75;
+    }
+
+    .pagination {
+      margin-top: 0.9rem;
+      display: flex;
+      gap: 0.7rem;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .page-link {
+      text-decoration: none;
+      color: #cde4d9;
+      border: 1px solid var(--line);
+      background: #1a2530;
+      border-radius: 10px;
+      padding: 0.5rem 0.8rem;
+      font-size: 0.9rem;
+    }
+
+    .page-link.disabled {
+      pointer-events: none;
+      opacity: 0.45;
+    }
+
+    .toggle {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+
+    @media (max-width: 740px) {
+      .wrap {
+        padding-top: 1.2rem;
+      }
+
+      p.subtitle {
+        font-size: 0.95rem;
+      }
+
+      .toolbar {
+        grid-template-columns: 1fr;
+      }
+
+      .actions {
+        width: 100%;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="wrap">
+    <h1>Delivered Cars</h1>
+    <p class="subtitle">Latest vehicles written to PostgreSQL from the vehicle-completed topic.</p>
+
+    <form method="get" action="/" class="toolbar">
+      <div class="field">
+        <label for="model">Model</label>
+        <input id="model" name="model" type="text" th:value="${modelFilter}" placeholder="SUV, Sedan..." />
+      </div>
+      <div class="field">
+        <label for="destination">Destination</label>
+        <input id="destination" name="destination" type="text" th:value="${destinationFilter}" placeholder="Berlin, Rome..." />
+      </div>
+      <div class="field">
+        <label for="deliveryDate">Delivery Date</label>
+        <input id="deliveryDate" name="deliveryDate" type="date" th:value="${deliveryDateFilter}" />
+      </div>
+      <div class="field">
+        <label for="size">Rows per Page</label>
+        <select id="size" name="size">
+          <option value="25" th:selected="${size == 25}">25</option>
+          <option value="50" th:selected="${size == 50}">50</option>
+          <option value="100" th:selected="${size == 100}">100</option>
+          <option value="150" th:selected="${size == 150}">150</option>
+          <option value="250" th:selected="${size == 250}">250</option>
+        </select>
+      </div>
+      <div class="actions">
+        <input type="hidden" name="page" value="0" />
+        <button class="btn" type="submit">Apply</button>
+        <a class="btn ghost" href="/">Reset</a>
+      </div>
+    </form>
+
+    <div class="stats">
+      <span id="total-items" th:text="|Total results: ${totalItems}|">Total results: 0</span>
+      <span id="refresh-meta" th:text="|Auto refresh every 10s.|">Auto refresh every 10s.</span>
+      <label class="toggle" for="auto-refresh">
+        <input id="auto-refresh" type="checkbox" checked />
+        Auto-refresh
+      </label>
+    </div>
+
+    <section class="card">
+      <table>
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>VIN</th>
+            <th>Model</th>
+            <th>Color</th>
+            <th>Line</th>
+            <th>Destination</th>
+            <th>Delivery Date</th>
+            <th>Event Time</th>
+          </tr>
+        </thead>
+        <tbody id="cars-tbody">
+          <tr th:each="car : ${cars}">
+            <td th:text="${car.id}"></td>
+            <td th:text="${car.vin}"></td>
+            <td th:text="${car.model}"></td>
+            <td th:text="${car.color}"></td>
+            <td th:text="${car.productionLine}"></td>
+            <td th:text="${car.destination}"></td>
+            <td th:text="${car.deliveryDate}"></td>
+            <td th:text="${car.eventTs}"></td>
+          </tr>
+          <tr th:if="${cars.isEmpty()}">
+            <td class="empty" colspan="8">No delivered cars found yet. Wait for producer events and connector ingestion.</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <nav class="pagination">
+      <a
+        class="page-link"
+        th:classappend="${page == 0} ? ' disabled'"
+        th:href="@{/(page=${page - 1},size=${size},model=${modelFilter},destination=${destinationFilter},deliveryDate=${deliveryDateFilter})}">Previous</a>
+      <span id="page-info" th:text="${totalPages == 0} ? 'Page 1 of 1' : |Page ${page + 1} of ${totalPages}|">Page 1 of 1</span>
+      <a
+        class="page-link"
+        th:classappend="${totalPages == 0 or page + 1 >= totalPages} ? ' disabled'"
+        th:href="@{/(page=${page + 1},size=${size},model=${modelFilter},destination=${destinationFilter},deliveryDate=${deliveryDateFilter})}">Next</a>
+    </nav>
+  </main>
+
+  <script>
+    (function () {
+      const tbody = document.getElementById("cars-tbody");
+      const autoRefreshCheckbox = document.getElementById("auto-refresh");
+      const totalItemsEl = document.getElementById("total-items");
+      const pageInfoEl = document.getElementById("page-info");
+      const refreshMetaEl = document.getElementById("refresh-meta");
+      let intervalId = null;
+
+      function escapeHtml(value) {
+        return String(value ?? "")
+          .replaceAll("&", "&amp;")
+          .replaceAll("<", "&lt;")
+          .replaceAll(">", "&gt;")
+          .replaceAll('"', "&quot;")
+          .replaceAll("'", "&#39;");
+      }
+
+      function buildApiUrl() {
+        const params = new URLSearchParams(window.location.search);
+        return "/api/delivered-cars?" + params.toString();
+      }
+
+      function renderRows(cars) {
+        if (!cars || cars.length === 0) {
+          tbody.innerHTML = '<tr><td class="empty" colspan="8">No delivered cars found for current filters.</td></tr>';
+          return;
+        }
+
+        tbody.innerHTML = cars.map((car) => {
+          return `
+            <tr>
+              <td>${escapeHtml(car.id)}</td>
+              <td>${escapeHtml(car.vin)}</td>
+              <td>${escapeHtml(car.model)}</td>
+              <td>${escapeHtml(car.color)}</td>
+              <td>${escapeHtml(car.productionLine)}</td>
+              <td>${escapeHtml(car.destination)}</td>
+              <td>${escapeHtml(car.deliveryDate)}</td>
+              <td>${escapeHtml(car.eventTs)}</td>
+            </tr>
+          `;
+        }).join("");
+      }
+
+      async function refresh() {
+        try {
+          const response = await fetch(buildApiUrl(), { headers: { "Accept": "application/json" } });
+          if (!response.ok) {
+            throw new Error("Refresh request failed: " + response.status);
+          }
+
+          const payload = await response.json();
+          renderRows(payload.cars || []);
+
+          totalItemsEl.textContent = `Total results: ${payload.totalItems}`;
+          const safeTotalPages = payload.totalPages && payload.totalPages > 0 ? payload.totalPages : 1;
+          pageInfoEl.textContent = `Page ${payload.page + 1} of ${safeTotalPages}`;
+          refreshMetaEl.textContent = `Auto refresh every 10s. Last refresh: ${new Date(payload.refreshedAt).toLocaleTimeString()}`;
+        } catch (error) {
+          refreshMetaEl.textContent = "Auto refresh paused due to network error.";
+        }
+      }
+
+      function startRefresh() {
+        if (intervalId !== null) {
+          return;
+        }
+        intervalId = window.setInterval(refresh, 10000);
+      }
+
+      function stopRefresh() {
+        if (intervalId !== null) {
+          window.clearInterval(intervalId);
+          intervalId = null;
+        }
+      }
+
+      autoRefreshCheckbox.addEventListener("change", () => {
+        if (autoRefreshCheckbox.checked) {
+          refresh();
+          startRefresh();
+        } else {
+          stopRefresh();
+          refreshMetaEl.textContent = "Auto refresh is turned off.";
+        }
+      });
+
+      startRefresh();
+    })();
+  </script>
+</body>
+</html>
