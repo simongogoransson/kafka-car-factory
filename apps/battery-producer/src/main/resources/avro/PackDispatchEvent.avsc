@@ -1,0 +1,79 @@
+{
+  "type": "record",
+  "name": "PackDispatchEvent",
+  "namespace": "com.factory.battery.events",
+  "doc": "Fired when a completed battery pack is dispatched from the factory",
+  "fields": [
+    {
+      "name": "eventId",
+      "type": "string"
+    },
+    {
+      "name": "eventType",
+      "type": "string",
+      "default": "pack-dispatch"
+    },
+    {
+      "name": "packId",
+      "type": "string"
+    },
+    {
+      "name": "chemistry",
+      "type": "string"
+    },
+    {
+      "name": "capacityKwh",
+      "type": "float"
+    },
+    {
+      "name": "nominalVoltageV",
+      "type": "float"
+    },
+    {
+      "name": "energyDensityWhKg",
+      "type": "float"
+    },
+    {
+      "name": "massKg",
+      "type": "float"
+    },
+    {
+      "name": "grade",
+      "type": "string",
+      "doc": "A | B | C"
+    },
+    {
+      "name": "destinationOem",
+      "type": "string",
+      "doc": "Target OEM / customer code"
+    },
+    {
+      "name": "vehicleModel",
+      "type": "string",
+      "doc": "Intended vehicle model"
+    },
+    {
+      "name": "warrantyYears",
+      "type": "int"
+    },
+    {
+      "name": "manufacturingTimeMin",
+      "type": "int",
+      "doc": "Total factory time in minutes"
+    },
+    {
+      "name": "dispatchDate",
+      "type": "string",
+      "doc": "ISO-8601 date"
+    },
+    {
+      "name": "productionLine",
+      "type": "string"
+    },
+    {
+      "name": "timestamp",
+      "type": "string"
+    }
+  ]
+}
+

@@ -1,0 +1,485 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>🔋 Battery Factory Dashboard</title>
+    <style>
+        :root {
+          --bg: #0d0d0d;
+          --surface: #1a1a1a;
+          --surface2: #232323;
+          --border: #333;
+          --red: #e63946;
+          --orange: #f4a261;
+          --yellow: #ffd166;
+          --green: #06d6a0;
+          --blue: #118ab2;
+          --purple: #9b5de5;
+          --teal: #00b4d8;
+          --lime: #90e0ef;
+          --text: #f0f0f0;
+          --text-muted: #888;
+          --font: 'Segoe UI', system-ui, sans-serif;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+          background: var(--bg);
+          color: var(--text);
+          font-family: var(--font);
+          display: flex;
+          flex-direction: column;
+          height: 100vh;
+          overflow: hidden;
+        }
+
+        /*  Header  */
+        header {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          padding: 12px 24px;
+          background: var(--surface);
+          border-bottom: 2px solid #00b4d8;
+          flex-shrink: 0;
+        }
+        .logo { display: flex; align-items: center; gap: 12px; }
+        .logo h1 { font-size: 1.3rem; font-weight: 700; letter-spacing: 1px; }
+        .logo span { font-size: 1.8rem; }
+        .status-bar { display: flex; gap: 24px; align-items: center; }
+        .status-indicator {
+          display: flex; align-items: center; gap: 6px;
+          font-size: 0.85rem; color: var(--text-muted);
+        }
+        .dot {
+          width: 10px; height: 10px; border-radius: 50%;
+          background: #555; transition: background 0.3s;
+        }
+        .dot.connected { background: var(--green); box-shadow: 0 0 6px var(--green); }
+        .dot.disconnected { background: var(--red); }
+
+        /*  Tab nav  */
+        .tab-nav {
+          display: flex;
+          gap: 4px;
+          padding: 0 24px;
+          background: var(--surface);
+          border-bottom: 1px solid var(--border);
+          flex-shrink: 0;
+        }
+        .tab-link {
+          padding: 8px 18px;
+          font-size: 0.82rem;
+          font-weight: 600;
+          color: var(--text-muted);
+          text-decoration: none;
+          border-bottom: 3px solid transparent;
+          transition: color 0.2s, border-color 0.2s;
+          letter-spacing: 0.5px;
+        }
+        .tab-link:hover { color: var(--text); }
+        .tab-link.active { color: var(--text); border-bottom-color: var(--teal); }
+
+        /*  Stats bar  */
+        .stats-bar {
+          display: flex;
+          gap: 12px;
+          padding: 10px 24px;
+          background: var(--surface2);
+          border-bottom: 1px solid var(--border);
+          flex-shrink: 0;
+          overflow-x: auto;
+        }
+        .stat-card {
+          min-width: 150px;
+          padding: 8px 14px;
+          border-radius: 8px;
+          border: 1px solid var(--border);
+          background: var(--surface);
+          text-align: center;
+        }
+        .stat-card .count { font-size: 1.6rem; font-weight: 700; line-height: 1; }
+        .stat-card .label { font-size: 0.7rem; color: var(--text-muted); margin-top: 4px; white-space: nowrap; }
+
+        /*  Main  */
+        main {
+          flex: 1;
+          overflow: hidden;
+          padding: 16px 24px;
+          display: flex;
+          gap: 16px;
+        }
+
+        .event-feed {
+          flex: 1;
+          overflow-y: auto;
+          display: flex;
+          flex-direction: column;
+          gap: 8px;
+        }
+        .event-feed::-webkit-scrollbar { width: 6px; }
+        .event-feed::-webkit-scrollbar-track { background: var(--bg); }
+        .event-feed::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+        /*  Event cards  */
+        .event-card {
+          background: var(--surface);
+          border: 1px solid var(--border);
+          border-left: 4px solid var(--teal);
+          border-radius: 8px;
+          padding: 10px 14px;
+          display: flex;
+          flex-direction: column;
+          gap: 4px;
+          animation: fadeIn 0.3s ease;
+        }
+        @keyframes fadeIn {
+          from { opacity: 0; transform: translateY(-8px); }
+          to   { opacity: 1; transform: translateY(0); }
+        }
+        .event-header {
+          display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+        }
+        .topic-badge {
+          font-size: 0.7rem; font-weight: 700;
+          padding: 2px 8px; border-radius: 12px;
+          text-transform: uppercase; letter-spacing: 0.5px;
+        }
+        .event-key  { font-size: 0.8rem; color: var(--text-muted); font-family: monospace; }
+        .event-time { font-size: 0.75rem; color: var(--text-muted); margin-left: auto; }
+        .event-body { display: flex; flex-wrap: wrap; gap: 8px; font-size: 0.82rem; }
+        .event-field { background: var(--surface2); border-radius: 4px; padding: 2px 8px; }
+        .event-field .field-name { color: var(--text-muted); }
+        .event-field .field-val  { color: var(--text); margin-left: 4px; }
+        .field-val.ok      { color: var(--green); }
+        .field-val.pass    { color: var(--green); }
+        .field-val.fail    { color: var(--red); }
+        .field-val.scrap   { color: var(--red); font-weight: bold; }
+        .field-val.rework  { color: var(--orange); }
+        .field-val.a       { color: var(--green); font-weight: bold; }
+        .field-val.b       { color: var(--yellow); }
+        .field-val.c       { color: var(--orange); }
+
+        /*  Battery topic colours  */
+        .topic-battery-cell-assembly    { background: #0d2b38; color: #00b4d8; }
+        .topic-battery-module-packaging { background: #1a2b1a; color: #6dde89; }
+        .topic-battery-formation-cycling{ background: #2a1f3d; color: #c09ae8; }
+        .topic-battery-quality-test     { background: #2d2516; color: #f5c87a; }
+        .topic-battery-pack-dispatch    { background: #3b1f1f; color: #e87e7e; }
+
+        .border-battery-cell-assembly    { border-left-color: #00b4d8; }
+        .border-battery-module-packaging { border-left-color: #06d6a0; }
+        .border-battery-formation-cycling{ border-left-color: #9b5de5; }
+        .border-battery-quality-test     { border-left-color: #ffd166; }
+        .border-battery-pack-dispatch    { border-left-color: #e63946; }
+
+        /*  Sidebar  */
+        .sidebar {
+          width: 240px; flex-shrink: 0;
+          display: flex; flex-direction: column; gap: 12px;
+        }
+        .sidebar-card {
+          background: var(--surface); border: 1px solid var(--border);
+          border-radius: 8px; padding: 14px;
+        }
+        .sidebar-card h3 {
+          font-size: 0.85rem; color: var(--text-muted);
+          margin-bottom: 10px; letter-spacing: 1px; text-transform: uppercase;
+        }
+        .topic-row {
+          display: flex; justify-content: space-between; align-items: center;
+          padding: 5px 0; border-bottom: 1px solid var(--border); font-size: 0.8rem;
+        }
+        .topic-row:last-child { border-bottom: none; }
+        .topic-dot  { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+        .topic-name { flex: 1; margin: 0 8px; color: var(--text-muted); font-size: 0.75rem; }
+        .topic-cnt  { font-weight: 700; }
+
+        /*  KPI strip inside sidebar  */
+        .kpi-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+        .kpi-cell {
+          background: var(--surface2); border-radius: 6px;
+          padding: 8px 10px; text-align: center;
+        }
+        .kpi-cell .kv { font-size: 1.2rem; font-weight: 700; }
+        .kpi-cell .kl { font-size: 0.65rem; color: var(--text-muted); margin-top: 2px; }
+    </style>
+</head>
+<body>
+
+<header>
+    <div class="logo">
+        <span>🔋</span>
+        <h1>BATTERY FACTORY DASHBOARD</h1>
+    </div>
+    <div class="status-bar">
+        <div class="status-indicator">
+            <div class="dot" id="ws-dot"></div>
+            <span id="ws-label">Connecting…</span>
+        </div>
+        <div class="status-indicator">
+            <span id="total-count">0</span>&nbsp;events
+        </div>
+        <div class="status-indicator">
+            <span id="rate-label">0 /s</span>
+        </div>
+    </div>
+</header>
+
+<nav class="tab-nav">
+    <a class="tab-link" href="/">🏭 Car Factory</a>
+    <a class="tab-link active" href="/battery">🔋 Battery Factory</a>
+</nav>
+
+<div class="stats-bar" id="stats-bar"></div>
+
+<main>
+    <div class="event-feed" id="event-feed"></div>
+
+    <aside class="sidebar">
+        <div class="sidebar-card">
+            <h3>Topics</h3>
+            <div id="topic-list"></div>
+        </div>
+
+        <div class="sidebar-card">
+            <h3>Live KPIs</h3>
+            <div class="kpi-grid">
+                <div class="kpi-cell">
+                    <div class="kv" id="kpi-pass-rate" style="color:var(--green)">—</div>
+                    <div class="kl">QC Pass Rate</div>
+                </div>
+                <div class="kpi-cell">
+                    <div class="kv" id="kpi-cell-ok" style="color:var(--teal)">—</div>
+                    <div class="kl">Cell OK Rate</div>
+                </div>
+                <div class="kpi-cell">
+                    <div class="kv" id="kpi-avg-ce" style="color:var(--purple)">—</div>
+                    <div class="kl">Avg CE%</div>
+                </div>
+                <div class="kpi-cell">
+                    <div class="kv" id="kpi-dispatched" style="color:var(--red)">0</div>
+                    <div class="kl">Packs Dispatched</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="sidebar-card">
+            <h3>Chemistry Mix</h3>
+            <div id="chemistry-list"></div>
+        </div>
+    </aside>
+</main>
+
+<script>
+    const MAX_EVENTS = 200;
+
+    const TOPIC_META = {
+      'battery-cell-assembly':     { label: 'Cell Assembly',      color: '#00b4d8', emoji: '⚡' },
+      'battery-module-packaging':  { label: 'Module Packaging',   color: '#06d6a0', emoji: '🧩' },
+      'battery-formation-cycling': { label: 'Formation Cycling',  color: '#9b5de5', emoji: '🔄' },
+      'battery-quality-test':      { label: 'Quality Test',       color: '#ffd166', emoji: '🔬' },
+      'battery-pack-dispatch':     { label: 'Pack Dispatch',      color: '#e63946', emoji: '🚚' },
+    };
+
+    const DISPLAY_FIELDS = {
+      'battery-cell-assembly':     ['cellId', 'chemistry', 'station', 'operation', 'capacityMah', 'voltageV', 'status'],
+      'battery-module-packaging':  ['moduleId', 'chemistry', 'configuration', 'capacityKwh', 'nominalVoltageV', 'coolingType', 'status'],
+      'battery-formation-cycling': ['cellId', 'cycleNumber', 'cycleType', 'cRate', 'coulombicEfficiencyPct', 'temperatureC', 'status'],
+      'battery-quality-test':      ['packId', 'inspector', 'capacityRetentionPct', 'internalResistanceMohm', 'overallResult', 'gradeAssigned'],
+      'battery-pack-dispatch':     ['packId', 'chemistry', 'capacityKwh', 'energyDensityWhKg', 'grade', 'destinationOem', 'vehicleModel'],
+    };
+
+    const STATUS_FIELDS = new Set(['status', 'overallResult', 'gradeAssigned']);
+
+    // --- KPI accumulators
+    const kpi = {
+      cellTotal: 0, cellOk: 0,
+      qcTotal: 0,   qcPass: 0,
+      ceSum: 0,     ceCount: 0,
+      dispatched: 0,
+    };
+    const chemistryCounts = {};
+
+    const topicCounts = {};
+    let totalCount = 0;
+    let lastRateCount = 0;
+
+    for (const t of Object.keys(TOPIC_META)) topicCounts[t] = 0;
+
+    // --- Stats bar
+    const statsBar = document.getElementById('stats-bar');
+    for (const [topic, meta] of Object.entries(TOPIC_META)) {
+      const card = document.createElement('div');
+      card.className = 'stat-card';
+      card.id = `stat-${topic}`;
+      card.innerHTML = `<div class="count" style="color:${meta.color}">0</div><div class="label">${meta.emoji} ${meta.label}</div>`;
+      statsBar.appendChild(card);
+    }
+
+    // --- Sidebar topic list
+    const topicList = document.getElementById('topic-list');
+    for (const [topic, meta] of Object.entries(TOPIC_META)) {
+      const row = document.createElement('div');
+      row.className = 'topic-row';
+      row.innerHTML = `
+        <div class="topic-dot" style="background:${meta.color}"></div>
+        <div class="topic-name">${meta.label}</div>
+        <div class="topic-cnt" style="color:${meta.color}" id="tcnt-${topic}">0</div>`;
+      topicList.appendChild(row);
+    }
+
+    // --- KPI update
+    function updateKpis() {
+      const passRate = kpi.qcTotal > 0 ? Math.round((kpi.qcPass / kpi.qcTotal) * 100) : null;
+      const okRate   = kpi.cellTotal > 0 ? Math.round((kpi.cellOk / kpi.cellTotal) * 100) : null;
+      const avgCe    = kpi.ceCount > 0 ? (kpi.ceSum / kpi.ceCount).toFixed(1) : null;
+
+      document.getElementById('kpi-pass-rate').textContent = passRate !== null ? `${passRate}%` : '—';
+      document.getElementById('kpi-cell-ok').textContent   = okRate   !== null ? `${okRate}%`   : '—';
+      document.getElementById('kpi-avg-ce').textContent    = avgCe    !== null ? `${avgCe}%`    : '—';
+      document.getElementById('kpi-dispatched').textContent = kpi.dispatched;
+
+      // Chemistry mix
+      const chemList = document.getElementById('chemistry-list');
+      chemList.innerHTML = '';
+      const total = Object.values(chemistryCounts).reduce((a, b) => a + b, 0);
+      const CHEM_COLORS = { NMC811: '#00b4d8', LFP: '#06d6a0', NCA: '#9b5de5', LMFP: '#ffd166' };
+      for (const [chem, cnt] of Object.entries(chemistryCounts).sort((a, b) => b[1] - a[1])) {
+        const pct = total > 0 ? Math.round((cnt / total) * 100) : 0;
+        const color = CHEM_COLORS[chem] || '#888';
+        const row = document.createElement('div');
+        row.className = 'topic-row';
+        row.innerHTML = `
+          <div class="topic-dot" style="background:${color}"></div>
+          <div class="topic-name">${chem}</div>
+          <div class="topic-cnt" style="color:${color}">${pct}%</div>`;
+        chemList.appendChild(row);
+      }
+    }
+
+    function accumulateKpis(topic, payload) {
+      if (topic === 'battery-cell-assembly') {
+        kpi.cellTotal++;
+        if (payload.status === 'ok') kpi.cellOk++;
+        if (payload.chemistry) chemistryCounts[payload.chemistry] = (chemistryCounts[payload.chemistry] || 0) + 1;
+      } else if (topic === 'battery-quality-test') {
+        kpi.qcTotal++;
+        if (payload.overallResult === 'pass') kpi.qcPass++;
+      } else if (topic === 'battery-formation-cycling') {
+        if (payload.coulombicEfficiencyPct != null) {
+          kpi.ceSum += payload.coulombicEfficiencyPct;
+          kpi.ceCount++;
+        }
+      } else if (topic === 'battery-pack-dispatch') {
+        kpi.dispatched++;
+      }
+    }
+
+    // --- Event rendering
+    const feed = document.getElementById('event-feed');
+
+    function statusClass(key, val) {
+      if (!STATUS_FIELDS.has(key)) return '';
+      return val.toLowerCase();
+    }
+
+    function renderEvent(envelope) {
+      const { topic, key, payload } = envelope;
+      const meta   = TOPIC_META[topic] || { label: topic, color: '#888', emoji: '📨' };
+      const fields = DISPLAY_FIELDS[topic] || Object.keys(payload).slice(0, 7);
+      const ts     = payload.timestamp ? new Date(payload.timestamp).toLocaleTimeString() : '';
+
+      const card = document.createElement('div');
+      card.className = `event-card border-${topic}`;
+
+      const header = document.createElement('div');
+      header.className = 'event-header';
+      header.innerHTML = `
+        <span class="topic-badge topic-${topic}">${meta.emoji} ${meta.label}</span>
+        <span class="event-key">${key || ''}</span>
+        <span class="event-time">${ts}</span>`;
+
+      const body = document.createElement('div');
+      body.className = 'event-body';
+      for (const f of fields) {
+        let val = payload[f];
+        if (val === null || val === undefined) continue;
+        if (typeof val === 'object') val = JSON.stringify(val);
+        // Round floats nicely
+        if (typeof val === 'number' && !Number.isInteger(val)) val = val.toFixed(2);
+        const sc = statusClass(f, String(val));
+        body.innerHTML += `<div class="event-field"><span class="field-name">${f}:</span><span class="field-val ${sc}">${val}</span></div>`;
+      }
+
+      card.appendChild(header);
+      card.appendChild(body);
+      feed.prepend(card);
+      while (feed.children.length > MAX_EVENTS) feed.removeChild(feed.lastChild);
+    }
+
+    // --- WebSocket
+    const dot     = document.getElementById('ws-dot');
+    const wsLabel = document.getElementById('ws-label');
+    const totalEl = document.getElementById('total-count');
+    const rateEl  = document.getElementById('rate-label');
+
+    function connect() {
+      fetch('/config')
+        .then(r => r.json())
+        .then(({ wsPort }) => {
+          const ws = new WebSocket(`ws://${location.hostname}:${wsPort}`);
+
+          ws.onopen = () => {
+            dot.className = 'dot connected';
+            wsLabel.textContent = 'Live';
+          };
+
+          ws.onmessage = (e) => {
+            const envelope = JSON.parse(e.data);
+            // Only handle battery events on this page
+            if (envelope.channel !== 'battery') return;
+
+            const topic = envelope.topic;
+            topicCounts[topic] = (topicCounts[topic] || 0) + 1;
+            totalCount++;
+            lastRateCount++;
+
+            // Update stat card
+            const card = document.getElementById(`stat-${topic}`);
+            if (card) card.querySelector('.count').textContent = topicCounts[topic];
+
+            // Update sidebar count
+            const cnt = document.getElementById(`tcnt-${topic}`);
+            if (cnt) cnt.textContent = topicCounts[topic];
+
+            totalEl.textContent = totalCount;
+
+            accumulateKpis(topic, envelope.payload);
+            updateKpis();
+            renderEvent(envelope);
+          };
+
+          ws.onclose = () => {
+            dot.className = 'dot disconnected';
+            wsLabel.textContent = 'Reconnecting…';
+            setTimeout(connect, 3000);
+          };
+
+          ws.onerror = () => ws.close();
+        })
+        .catch(() => setTimeout(connect, 3000));
+    }
+
+    // Rate counter
+    setInterval(() => {
+      rateEl.textContent = `${lastRateCount} /s`;
+      lastRateCount = 0;
+    }, 1000);
+
+    connect();
+</script>
+</body>
+</html>
+

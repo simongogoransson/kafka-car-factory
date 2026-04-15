@@ -1,0 +1,85 @@
+{
+  "type": "record",
+  "name": "FormationCyclingEvent",
+  "namespace": "com.factory.battery.events",
+  "doc": "Fired for each charge/discharge cycle during battery formation",
+  "fields": [
+    {
+      "name": "eventId",
+      "type": "string"
+    },
+    {
+      "name": "eventType",
+      "type": "string",
+      "default": "formation-cycling"
+    },
+    {
+      "name": "cellId",
+      "type": "string"
+    },
+    {
+      "name": "cycleNumber",
+      "type": "int",
+      "doc": "1-indexed cycle within formation"
+    },
+    {
+      "name": "totalCycles",
+      "type": "int",
+      "doc": "Total cycles in the formation protocol"
+    },
+    {
+      "name": "cycleType",
+      "type": "string",
+      "doc": "charge | discharge | rest"
+    },
+    {
+      "name": "cRate",
+      "type": "float",
+      "doc": "C-rate used (e.g. 0.2, 0.5, 1.0)"
+    },
+    {
+      "name": "startVoltageV",
+      "type": "float"
+    },
+    {
+      "name": "endVoltageV",
+      "type": "float"
+    },
+    {
+      "name": "chargeCapacityMah",
+      "type": "float"
+    },
+    {
+      "name": "dischargeCapacityMah",
+      "type": "float"
+    },
+    {
+      "name": "coulombicEfficiencyPct",
+      "type": "float",
+      "doc": "discharge / charge * 100"
+    },
+    {
+      "name": "temperatureC",
+      "type": "float"
+    },
+    {
+      "name": "durationMin",
+      "type": "int"
+    },
+    {
+      "name": "chamberId",
+      "type": "string",
+      "doc": "Formation chamber / tray ID"
+    },
+    {
+      "name": "status",
+      "type": "string",
+      "doc": "ok | fail"
+    },
+    {
+      "name": "timestamp",
+      "type": "string"
+    }
+  ]
+}
+

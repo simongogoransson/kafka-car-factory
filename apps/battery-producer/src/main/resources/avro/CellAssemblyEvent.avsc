@@ -1,0 +1,88 @@
+{
+  "type": "record",
+  "name": "CellAssemblyEvent",
+  "namespace": "com.factory.battery.events",
+  "doc": "Fired each time a battery cell completes an assembly step",
+  "fields": [
+    {
+      "name": "eventId",
+      "type": "string",
+      "doc": "UUID for this event"
+    },
+    {
+      "name": "eventType",
+      "type": "string",
+      "default": "cell-assembly"
+    },
+    {
+      "name": "cellId",
+      "type": "string",
+      "doc": "Unique cell serial number"
+    },
+    {
+      "name": "moduleId",
+      "type": "string",
+      "doc": "Parent module serial number"
+    },
+    {
+      "name": "chemistry",
+      "type": "string",
+      "doc": "NMC811 | LFP | NCA | LMFP"
+    },
+    {
+      "name": "station",
+      "type": "string",
+      "doc": "Assembly station identifier"
+    },
+    {
+      "name": "operation",
+      "type": "string",
+      "doc": "e.g. electrode-stacking, electrolyte-fill"
+    },
+    {
+      "name": "workerId",
+      "type": "string"
+    },
+    {
+      "name": "capacityMah",
+      "type": "float",
+      "doc": "Rated capacity in mAh"
+    },
+    {
+      "name": "voltageV",
+      "type": "float",
+      "doc": "Open-circuit voltage after assembly"
+    },
+    {
+      "name": "thicknessMm",
+      "type": "float"
+    },
+    {
+      "name": "weightG",
+      "type": "float"
+    },
+    {
+      "name": "status",
+      "type": "string",
+      "doc": "ok | rework | scrap"
+    },
+    {
+      "name": "defectCode",
+      "type": [
+        "null",
+        "string"
+      ],
+      "default": null
+    },
+    {
+      "name": "productionLine",
+      "type": "string"
+    },
+    {
+      "name": "timestamp",
+      "type": "string",
+      "doc": "ISO-8601"
+    }
+  ]
+}
+

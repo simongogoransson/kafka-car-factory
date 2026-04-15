@@ -1,0 +1,57 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: battery-producer
+  namespace: kafka-car-factory
+  labels:
+    app: battery-producer
+    app.kubernetes.io/part-of: kafka-car-factory-demo
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: battery-producer
+  template:
+    metadata:
+      labels:
+        app: battery-producer
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8086"
+        prometheus.io/path: "/actuator/prometheus"
+    spec:
+      containers:
+        - name: battery-producer
+          image: battery-producer
+          ports:
+            - name: http
+              containerPort: 8086
+          env:
+            - name: KAFKA_BROKERS
+              value: factory-kafka-kafka-bootstrap.kafka-car-factory.svc.cluster.local:9092
+            - name: SCHEMA_REGISTRY_URL
+              value: http://apicurio-registry.kafka-car-factory.svc.cluster.local:8080/apis/registry/v2
+            - name: SERVER_PORT
+              value: "8086"
+            - name: EMIT_INTERVAL_MS
+              value: "400"
+          resources:
+            requests:
+              memory: 256Mi
+              cpu: "150m"
+            limits:
+              memory: 512Mi
+              cpu: "400m"
+          livenessProbe:
+            httpGet:
+              path: /actuator/health/liveness
+              port: 8086
+            initialDelaySeconds: 45
+            periodSeconds: 30
+          readinessProbe:
+            httpGet:
+              path: /actuator/health/readiness
+              port: 8086
+            initialDelaySeconds: 45
+            periodSeconds: 15
+

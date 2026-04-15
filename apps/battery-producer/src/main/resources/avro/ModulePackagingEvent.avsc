@@ -1,0 +1,80 @@
+{
+  "type": "record",
+  "name": "ModulePackagingEvent",
+  "namespace": "com.factory.battery.events",
+  "doc": "Fired when a battery module (group of cells) is packaged",
+  "fields": [
+    {
+      "name": "eventId",
+      "type": "string"
+    },
+    {
+      "name": "eventType",
+      "type": "string",
+      "default": "module-packaging"
+    },
+    {
+      "name": "moduleId",
+      "type": "string",
+      "doc": "Unique module serial number"
+    },
+    {
+      "name": "packId",
+      "type": "string",
+      "doc": "Parent pack serial number"
+    },
+    {
+      "name": "chemistry",
+      "type": "string"
+    },
+    {
+      "name": "cellCount",
+      "type": "int",
+      "doc": "Number of cells in this module"
+    },
+    {
+      "name": "configuration",
+      "type": "string",
+      "doc": "e.g. 12s4p, 8s6p"
+    },
+    {
+      "name": "nominalVoltageV",
+      "type": "float"
+    },
+    {
+      "name": "capacityKwh",
+      "type": "float"
+    },
+    {
+      "name": "massKg",
+      "type": "float"
+    },
+    {
+      "name": "internalResistanceMohm",
+      "type": "float"
+    },
+    {
+      "name": "coolingType",
+      "type": "string",
+      "doc": "liquid | air | phase-change"
+    },
+    {
+      "name": "station",
+      "type": "string"
+    },
+    {
+      "name": "status",
+      "type": "string",
+      "doc": "ok | rework | scrap"
+    },
+    {
+      "name": "productionLine",
+      "type": "string"
+    },
+    {
+      "name": "timestamp",
+      "type": "string"
+    }
+  ]
+}
+

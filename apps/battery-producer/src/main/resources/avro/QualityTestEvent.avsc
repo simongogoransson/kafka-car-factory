@@ -1,0 +1,80 @@
+{
+  "type": "record",
+  "name": "QualityTestEvent",
+  "namespace": "com.factory.battery.events",
+  "doc": "End-of-line quality test result for a battery pack",
+  "fields": [
+    {
+      "name": "eventId",
+      "type": "string"
+    },
+    {
+      "name": "eventType",
+      "type": "string",
+      "default": "quality-test"
+    },
+    {
+      "name": "packId",
+      "type": "string",
+      "doc": "Battery pack serial number"
+    },
+    {
+      "name": "inspector",
+      "type": "string"
+    },
+    {
+      "name": "testType",
+      "type": "string",
+      "doc": "EOL | incoming | periodic"
+    },
+    {
+      "name": "capacityRetentionPct",
+      "type": "float",
+      "doc": "Retained capacity vs rated"
+    },
+    {
+      "name": "internalResistanceMohm",
+      "type": "float"
+    },
+    {
+      "name": "shortCircuitTest",
+      "type": "boolean"
+    },
+    {
+      "name": "insulationResistanceMohm",
+      "type": "float"
+    },
+    {
+      "name": "thermalRunawayTest",
+      "type": "boolean",
+      "doc": "true = pass"
+    },
+    {
+      "name": "overallResult",
+      "type": "string",
+      "doc": "pass | fail"
+    },
+    {
+      "name": "defectCode",
+      "type": [
+        "null",
+        "string"
+      ],
+      "default": null
+    },
+    {
+      "name": "gradeAssigned",
+      "type": "string",
+      "doc": "A | B | C | scrap"
+    },
+    {
+      "name": "station",
+      "type": "string"
+    },
+    {
+      "name": "timestamp",
+      "type": "string"
+    }
+  ]
+}
+

@@ -21,6 +21,10 @@ build:
       context: apps/factory-connect
       docker:
         dockerfile: Dockerfile
+    - image: battery-producer
+      context: apps/battery-producer
+      docker:
+        dockerfile: Dockerfile
   local:
     push: false
     useDockerCLI: false   # uses DOCKER_HOST (Podman socket) directly
@@ -35,6 +39,7 @@ manifests:
     - k8s/kafka/kafka-cluster.yaml
     - k8s/kafka/kafka-topics.yaml
     - k8s/kafka/kafka-topic-apicurio-registry-storage.yaml
+    - k8s/kafka/kafka-topics-battery.yaml
     - k8s/kafka/kafka-connect-topics.yaml
     - k8s/postgres/postgres-secret.yaml
     - k8s/postgres/postgres.yaml
@@ -52,6 +57,8 @@ manifests:
     - k8s/factory-app/service-dashboard.yaml
     - k8s/factory-app/deployment-delivered-cars.yaml
     - k8s/factory-app/service-delivered-cars.yaml
+    - k8s/factory-app/deployment-battery-producer.yaml
+    - k8s/factory-app/service-battery-producer.yaml
   helm:
     releases:
       - name: apicurio-registry
@@ -105,3 +112,8 @@ portForward:
     namespace: kafka-car-factory
     port: 8080
     localPort: 8080
+  - resourceType: Service
+    resourceName: battery-producer
+    namespace: kafka-car-factory
+    port: 8086
+    localPort: 8086

@@ -1,6 +1,9 @@
 'use strict';
 
-const { Kafka, logLevel } = require('kafkajs');
+const { Kafka, logLevel, CompressionTypes, CompressionCodecs } = require('kafkajs');
+const SnappyCodec = require('kafkajs-snappy');
+CompressionCodecs[CompressionTypes.Snappy] = SnappyCodec;
+
 const WebSocket = require('ws');
 const avsc = require('avsc');
 
@@ -19,7 +22,15 @@ const TOPICS = [
   'paint-shop-events',
 ];
 
-// ─── Avro deserialization ─────────────────────────────────────────────────────
+const BATTERY_TOPICS = new Set([
+  'battery-cell-assembly',
+  'battery-module-packaging',
+  'battery-formation-cycling',
+  'battery-quality-test',
+  'battery-pack-dispatch',
+]);
+
+// --- Avro deserialization ----------------------------------------------------
 // Apicurio wire format: 0x00 (magic) + 8-byte big-endian globalId + Avro bytes
 
 const schemaCache = new Map();
@@ -37,7 +48,7 @@ async function deserializeAvro(buffer) {
   return type.fromBuffer(buffer.subarray(9));
 }
 
-// ─── WebSocket server ─────────────────────────────────────────────────────────
+// --- WebSocket server --------------------------------------------------------
 
 const wss = new WebSocket.Server({ port: WS_PORT });
 
@@ -52,7 +63,7 @@ function broadcast(msg) {
   }
 }
 
-// ─── Kafka consumer ───────────────────────────────────────────────────────────
+// --- Kafka consumer ----------------------------------------------------------
 
 async function startConsumer() {
   const kafka = new Kafka({
@@ -79,6 +90,9 @@ async function startConsumer() {
   for (const topic of TOPICS) {
     await consumer.subscribe({ topic, fromBeginning: false });
   }
+  for (const topic of BATTERY_TOPICS) {
+    await consumer.subscribe({ topic, fromBeginning: false });
+  }
 
   console.log('[dashboard] Subscribed to all factory topics. Waiting for events...');
 
@@ -102,6 +116,7 @@ async function startConsumer() {
 
       const envelope = {
         topic,
+        channel: BATTERY_TOPICS.has(topic) ? 'battery' : 'factory',
         partition,
         offset: message.offset,
         key: message.key?.toString(),

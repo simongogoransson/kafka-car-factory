@@ -32,7 +32,7 @@
       overflow: hidden;
     }
 
-    /* ── Header ── */
+    /* -- Header -- */
     header {
       display: flex;
       align-items: center;
@@ -57,7 +57,28 @@
     .dot.connected { background: var(--green); box-shadow: 0 0 6px var(--green); }
     .dot.disconnected { background: var(--red); }
 
-    /* ── Stats bar ── */
+    .tab-nav {
+      display: flex;
+      gap: 4px;
+      padding: 0 24px;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+    .tab-link {
+      padding: 8px 18px;
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-decoration: none;
+      border-bottom: 3px solid transparent;
+      transition: color 0.2s, border-color 0.2s;
+      letter-spacing: 0.5px;
+    }
+    .tab-link:hover { color: var(--text); }
+    .tab-link.active { color: var(--text); border-bottom-color: var(--red); }
+
+    /* -- Stats bar -- */
     .stats-bar {
       display: flex;
       gap: 12px;
@@ -111,7 +132,7 @@
       text-overflow: ellipsis;
     }
 
-    /* ── Main content ── */
+    /* -- Main content -- */
     main {
       flex: 1;
       overflow: hidden;
@@ -192,7 +213,7 @@
     .field-val.rework { color: var(--orange); }
     .field-val.defect { color: var(--red); }
 
-    /* ── Topic colors ── */
+    /* -- Topic colors -- */
     .topic-assembly-line-events     { background: #1b3a4b; color: #6bcfef; border-color: #118ab2; }
     .topic-quality-control-results  { background: #1f2d1c; color: #6dde89; border-color: #06d6a0; }
     .topic-vehicle-completed        { background: #3b1f1f; color: #e87e7e; border-color: #e63946; }
@@ -207,7 +228,7 @@
     .border-engine-production        { border-left-color: #9b5de5; }
     .border-paint-shop-events        { border-left-color: #f4a261; }
 
-    /* ── Sidebar ── */
+    /* -- Sidebar -- */
     .sidebar {
       width: 240px;
       flex-shrink: 0;
@@ -288,6 +309,11 @@
   </div>
 </header>
 
+<nav class="tab-nav">
+  <a class="tab-link active" href="/">🏭 Car Factory</a>
+  <a class="tab-link" href="/battery">🔋 Battery Factory</a>
+</nav>
+
 <div class="demo-banner normal" id="demo-banner">Normal load mode active. Broker node pool target: 3 replicas.</div>
 
 <div class="stats-bar" id="stats-bar">
@@ -341,7 +367,7 @@
   // Initialise counters
   for (const t of Object.keys(TOPIC_META)) topicCounts[t] = 0;
 
-  // ── Stats bar ──────────────────────────────────────────────────────────────
+  // --- Stats bar 
   const statsBar = document.getElementById('stats-bar');
   Object.entries(TOPIC_META).forEach(([topic, meta]) => {
     const card = document.createElement('div');
@@ -351,7 +377,7 @@
     statsBar.appendChild(card);
   });
 
-  // ── Sidebar topic list ─────────────────────────────────────────────────────
+  // --- Sidebar topic list 
   const topicList = document.getElementById('topic-list');
   Object.entries(TOPIC_META).forEach(([topic, meta]) => {
     const row = document.createElement('div');
@@ -364,7 +390,7 @@
     topicList.appendChild(row);
   });
 
-  // ── Event rendering ────────────────────────────────────────────────────────
+  // --- Event rendering 
   const feed = document.getElementById('event-feed');
 
   const DISPLAY_FIELDS = {
@@ -420,7 +446,7 @@
     }
   }
 
-  // ── WebSocket connection ───────────────────────────────────────────────────
+  // --- WebSocket connection 
   const dot   = document.getElementById('ws-dot');
   const label = document.getElementById('ws-label');
   const totalEl = document.getElementById('total-count');
@@ -502,6 +528,8 @@
 
         ws.onmessage = (e) => {
           const envelope = JSON.parse(e.data);
+          // Only handle factory events on this page
+          if (envelope.channel === 'battery') return;
           const topic = envelope.topic;
           topicCounts[topic] = (topicCounts[topic] || 0) + 1;
           totalCount++;

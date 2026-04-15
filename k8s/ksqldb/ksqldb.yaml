@@ -16,6 +16,19 @@ spec:
       labels:
         app: ksqldb-server
     spec:
+      initContainers:
+        - name: wait-for-kafka
+          image: busybox:1.36
+          command:
+            - sh
+            - -c
+            - |
+              echo "Waiting for Kafka bootstrap..."
+              until nc -z factory-kafka-kafka-bootstrap.kafka-car-factory.svc.cluster.local 9092; do
+                echo "Kafka not ready, sleeping 5s..."
+                sleep 5
+              done
+              echo "Kafka is reachable, starting ksqlDB."
       containers:
         - name: ksqldb-server
           image: confluentinc/ksqldb-server:0.29.0
@@ -29,41 +42,47 @@ spec:
               value: "http://0.0.0.0:8088"
             - name: KSQL_KSQL_SERVICE_ID
               value: "kafka_car_factory_ksql_"
+            # --- Replication: 1 for demo - avoids waiting for ISR on all 3 brokers
             - name: KSQL_KSQL_STREAMS_REPLICATION_FACTOR
-              value: "3"
+              value: "1"
             - name: KSQL_KSQL_INTERNAL_TOPIC_REPLICAS
-              value: "3"
+              value: "1"
             - name: KSQL_KSQL_LOGGING_PROCESSING_STREAM_AUTO_CREATE
               value: "true"
             - name: KSQL_KSQL_LOGGING_PROCESSING_TOPIC_AUTO_CREATE
               value: "true"
             - name: KSQL_KSQL_LOGGING_PROCESSING_TOPIC_REPLICATION_FACTOR
-              value: "3"
+              value: "1"
+            # --- 1 stream thread is enough for a demo and starts much faster
             - name: KSQL_KSQL_STREAMS_NUM_STREAM_THREADS
-              value: "3"
+              value: "1"
+            # --- Larger heap to avoid GC thrash during JVM startup
             - name: KSQL_HEAP_OPTS
-              value: "-Xms256M -Xmx512M"
+              value: "-Xms512M -Xmx768M"
+            # --- Speed up Kafka Streams state-store recovery on startup
+            - name: KSQL_KSQL_STREAMS_CACHE_MAX_BYTES_BUFFERING
+              value: "0"
           livenessProbe:
             httpGet:
               path: /healthcheck
               port: 8088
-            initialDelaySeconds: 120
+            initialDelaySeconds: 60
             periodSeconds: 30
             failureThreshold: 5
           readinessProbe:
             httpGet:
               path: /healthcheck
               port: 8088
-            initialDelaySeconds: 60
+            initialDelaySeconds: 30
             periodSeconds: 10
             failureThreshold: 10
           resources:
             requests:
-              memory: 512Mi
-              cpu: "200m"
+              memory: 768Mi
+              cpu: "500m"
             limits:
               memory: 1Gi
-              cpu: "500m"
+              cpu: "1000m"
 ---
 apiVersion: v1
 kind: Service

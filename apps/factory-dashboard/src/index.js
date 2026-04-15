@@ -217,6 +217,10 @@ app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
+app.get('/battery', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'battery.html'));
+});
+
 app.get('/health', (_req, res) => res.json({ status: 'ok' }));
 
 app.get('/config', (_req, res) => res.json({ wsPort: WS_PORT }));
